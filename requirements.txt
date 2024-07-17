@@ -1,0 +1,13 @@
+#This file lists the libraries your project depends on, 
+#specifying the exact versions to ensure consistency and compatibility across different environments
+
+
+#With Spotipy, we can get full access to all of the music data provided by the Spotify platform.
+spotipy=2.23.0
+
+#Streamlit is an open-source app framework for Machine Learning and Data Science projects. 
+#It allows us to create beautiful, interactive web apps quickly and with minimal code.
+streamlit=1.32.2
+
+#Pandas is a fast, powerful, flexible, and easy-to-use open-source data analysis and manipulation tool.
+pandas=2.0.3
