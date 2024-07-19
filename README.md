@@ -12,3 +12,6 @@ This is a Streamlit app that analyzes your top Spotify songs.
 
 Create a `.env` file in the root directory and add your Spotify API credentials:
 
+CLIENT_ID=your_spotify_client_id
+CLIENT_SECRET=your_spotify_client_secret
+REDIRECT_URI=http://localhost:5500

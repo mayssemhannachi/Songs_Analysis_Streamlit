@@ -19,7 +19,7 @@ sp = spotipy.Spotify(
         client_id=CLIENT_ID,
         client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
-        scope='user-top-read'
+        scope='user-read-recently-played'
     )
 )
 
@@ -31,29 +31,54 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
+# Background image CSS
+background_style = """
+<style>
+    body {
+        background-image: url('https://example.com/your-image-url.jpg');
+        background-size: cover;
+    }
+</style>
+"""
+
+# Display the background style
+st.markdown(background_style, unsafe_allow_html=True)
+
 # Streamlit UI
-st.title('Analysis for your Top Spotify Songs')
-st.write('Discover insights about your Spotify listening habits!')
+st.title('Analysis for Your Recently Played Spotify Songs')
+st.write('Discover insights about your recent Spotify listening habits!')
 
-# Get the user's top tracks
-top_tracks = sp.current_user_top_tracks(limit=10, offset=0, time_range='long_term')
+# Get the user's recently played tracks
+recently_played = sp.current_user_recently_played(limit=50)
 
-# Print the length of top_tracks['items'] for debugging
-print(f"Number of top tracks retrieved: {len(top_tracks['items'])}")
+# Print the length of recently_played['items'] for debugging
+print(f"Number of recently played tracks retrieved: {len(recently_played['items'])}")
 
 # Check if there are tracks to process
-if len(top_tracks['items']) > 0:
-    # Extract track IDs for fetching audio features
-    track_ids = [track['id'] for track in top_tracks['items']]
+if len(recently_played['items']) > 0:
+    # Extract track IDs and track details
+    track_ids = []
+    track_names = []
+    unique_tracks = set()
+    
+    for item in recently_played['items']:
+        track_id = item['track']['id']
+        track_name = item['track']['name']
+        
+        # Check for duplicates
+        if track_id not in unique_tracks:
+            track_ids.append(track_id)
+            track_names.append(track_name)
+            unique_tracks.add(track_id)
 
-    # Fetch audio features for the top tracks
+    # Fetch audio features for the unique recently played tracks
     audio_features = sp.audio_features(track_ids)
 
     # Create a DataFrame from audio features
     df = pd.DataFrame(audio_features)
 
     # Add track names to the DataFrame
-    df['track_name'] = [top_tracks['items'][i]['name'] for i in range(min(10, len(top_tracks['items'])))]
+    df['track_name'] = track_names
 
     # Reorder columns for better readability
     df = df[['track_name', 'danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness',
@@ -63,11 +88,11 @@ if len(top_tracks['items']) > 0:
     df.set_index('track_name', inplace=True)
 
     # Display audio features using a bar chart in Streamlit
-    st.subheader('Audio Features of your Top Songs')
+    st.subheader('Audio Features of Your Recently Played Songs')
     st.bar_chart(df, height=500)
 
     # Optionally, display the DataFrame for more detailed analysis
     st.subheader('Raw Data')
     st.write(df)
 else:
-    st.write("No top tracks found. Make sure your Spotify account has sufficient data.")
+    st.write("No recently played tracks found. Make sure your Spotify account has sufficient data.")

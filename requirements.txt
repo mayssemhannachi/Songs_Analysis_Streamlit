@@ -1,4 +1,4 @@
-#This file lists the libraries your project depends on, 
+#This file lists the libraries the project depends on, 
 #specifying the exact versions to ensure consistency and compatibility across different environments
 
 
@@ -11,3 +11,6 @@ streamlit=1.32.2
 
 #Pandas is a fast, powerful, flexible, and easy-to-use open-source data analysis and manipulation tool.
 pandas=2.0.3
+
+#dotenv is a Python module that allows us to load variables from a .env file into the environment variables of our Python script.
+python-dotenv
