@@ -24,14 +24,36 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=client_id,
     client_secret=client_secret,
     redirect_uri=redirect_uri,
-    scope="user-read-recently-played"
+    scope="user-read-recently-played user-read-email"
 ))
 
 # Streamlit UI
-st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', layout='wide')
+st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', layout='wide', initial_sidebar_state='expanded')
+
+#with open("style.css") as f:
+ #   st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Sidebar
+
+# Display the user's profile details
+user = sp.current_user()
+st.write(f"Logged in as {user['display_name']}")
+st.write(f"Country: {user['country']}")
+st.write(f"Followers: {user['followers']['total']}")
+st.write(f"Product: {user['product']}")
+if 'images' in user and len(user['images']) > 0:
+    st.image(user['images'][0]['url'], width=200)
+if 'email' in user:
+    st.write(f"Email: {user['email']}")
+
+st.sidebar.title('Dashboard `Configuration 🎛️`')
+st.sidebar.subheader('Customize the dashboard with the options below')
+
 with elements("new_element"):
     st.title('Spotify Songs Analysis')
     mui.Typography("Analyze your Spotify listening habits with Streamlit and the Spotify API!")
+
+
 
 # UI Color
 color = st.color_picker("Pick A Color", "#FF4B4B")
@@ -51,8 +73,6 @@ st.markdown(f"""
     .st-emotion-cache-1wv6e1s {{
         color: {color};
     }}
-
-    
     </style>
     """, unsafe_allow_html=True)
 
@@ -61,7 +81,7 @@ number = st.slider("Pick a number", 0, 50)
 
 if number > 0:
     # Get the user's recently played tracks
-    recently_played = sp.current_user_recently_played(limit=number)
+    recently_played = sp.current_user_recently_played(limit=number+1)
 
     # Print the length of recently_played['items'] for debugging
     print(f"Number of recently played tracks retrieved: {len(recently_played['items'])}")
