@@ -24,19 +24,21 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=client_id,
     client_secret=client_secret,
     redirect_uri=redirect_uri,
-    scope="user-read-recently-played"
+    scope="user-read-recently-played user-top-read user-read-playback-state"
 ))
 
-# page config
+# Page config
 st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', layout='wide', initial_sidebar_state='expanded')
 
-#with open("style.css") as f:
- #   st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Sidebar
 
-# SIDEBAR
-
-# Display the Spotify logo
-st.sidebar.image('https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png', width=200)
+# Display the Spotify and Streamlit logos side by side
+st.sidebar.markdown("""
+<div style="display: flex; align-items: center;">
+    <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png" width="100" style="margin-right: 20px;">
+    <img src="https://streamlit.io/images/brand/streamlit-mark-color.png" width="100">
+</div>
+""", unsafe_allow_html=True)
 
 # Display the title and description
 st.sidebar.title('Dashboard `Configuration 🎛️`')
@@ -47,19 +49,29 @@ st.sidebar.write(f"Logged in as {user.get('display_name', 'N/A')}")
 if 'email' in user:
     st.sidebar.write(f"Email: {user.get('email', 'N/A')}")
 
-st.sidebar.subheader('Customize the dashboard with the options below')
+# Customization options
+st.sidebar.subheader('Customization Options')
+color = st.sidebar.color_picker('Pick a color', '#00f900')
+
+# Display the app info
+st.sidebar.subheader('About')
+st.sidebar.info('''
+This app allows you to analyze your Spotify listening habits.
+- Enter the number of recently played tracks you want to analyze.
+- View audio features, track popularity, top artists, and genre distribution.
+- Powered by the Spotify API.
+''')
+
+# Number of recently played tracks retrieved
+number = st.sidebar.slider("Pick a number", 0, 50)
 
 st.sidebar.markdown('''
 ---
 Created with ❤️ by [Mayssem Hn](https://github.com/mayssemhannachi/).''')
 
-
 with elements("new_element"):
     st.title('Spotify Songs Analysis')
     mui.Typography("Analyze your Spotify listening habits with Streamlit and the Spotify API!")
-
-# UI Color
-color = st.color_picker("Pick A Color", "#FF4B4B")
 
 # Inject custom CSS to style the sidebar and slider
 st.markdown(f"""
@@ -79,8 +91,35 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# Number of recently played tracks retrieved
-number = st.slider("Pick a number", 0, 50)
+# Fetch top tracks and artists
+top_tracks = sp.current_user_top_tracks(limit=1)
+top_artists = sp.current_user_top_artists(limit=1)
+
+# Fetch currently playing track
+currently_playing = sp.currently_playing()
+
+# Display most played song
+if top_tracks and top_tracks['items']:
+    most_played_song = top_tracks['items'][0]['name']
+    most_played_song_artist = top_tracks['items'][0]['artists'][0]['name']
+    st.sidebar.subheader('Most Played Song')
+    st.sidebar.write(f"{most_played_song} by {most_played_song_artist}")
+
+# Display most played artist
+if top_artists and top_artists['items']:
+    most_played_artist = top_artists['items'][0]['name']
+    st.sidebar.subheader('Most Played Artist')
+    st.sidebar.write(most_played_artist)
+
+# Display currently playing song
+if currently_playing and currently_playing['is_playing']:
+    currently_playing_song = currently_playing['item']['name']
+    currently_playing_artist = currently_playing['item']['artists'][0]['name']
+    st.sidebar.subheader('Currently Playing')
+    st.sidebar.write(f"{currently_playing_song} by {currently_playing_artist}")
+else:
+    st.sidebar.subheader('Currently Playing')
+    st.sidebar.write("No song is currently playing.")
 
 if number > 0:
     # Get the user's recently played tracks
