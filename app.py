@@ -24,7 +24,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=client_id,
     client_secret=client_secret,
     redirect_uri=redirect_uri,
-    scope="user-read-recently-played user-read-email"
+    scope="user-read-recently-played"
 ))
 
 # Streamlit UI
@@ -37,14 +37,15 @@ st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', la
 
 # Display the user's profile details
 user = sp.current_user()
-st.write(f"Logged in as {user['display_name']}")
-st.write(f"Country: {user['country']}")
-st.write(f"Followers: {user['followers']['total']}")
-st.write(f"Product: {user['product']}")
+st.write(user)  # Check the structure of the user object
+st.write(f"Logged in as {user.get('display_name', 'N/A')}")
+st.write(f"Country: {user.get('country', 'N/A')}")
+st.write(f"Followers: {user.get('followers', {}).get('total', 'N/A')}")
+st.write(f"Product: {user.get('product', 'N/A')}")
 if 'images' in user and len(user['images']) > 0:
     st.image(user['images'][0]['url'], width=200)
 if 'email' in user:
-    st.write(f"Email: {user['email']}")
+    st.write(f"Email: {user.get('email', 'N/A')}")
 
 st.sidebar.title('Dashboard `Configuration 🎛️`')
 st.sidebar.subheader('Customize the dashboard with the options below')
@@ -52,8 +53,6 @@ st.sidebar.subheader('Customize the dashboard with the options below')
 with elements("new_element"):
     st.title('Spotify Songs Analysis')
     mui.Typography("Analyze your Spotify listening habits with Streamlit and the Spotify API!")
-
-
 
 # UI Color
 color = st.color_picker("Pick A Color", "#FF4B4B")
