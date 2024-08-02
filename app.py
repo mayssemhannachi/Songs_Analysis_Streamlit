@@ -48,8 +48,8 @@ st.markdown(f"""
     .st-emotion-cache-10y5sf6 {{
         color: {color};
     }}
-    .st-cl {{
-        background: linear-gradient(to right, {color} 0%, {color} 60%, rgba(172, 177, 195, 0.25) 60%, rgba(172, 177, 195, 0.25) 100%);
+    .st-emotion-cache-1wv6e1s {{
+        color: {color};
     }}
     </style>
     """, unsafe_allow_html=True)
