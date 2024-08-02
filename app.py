@@ -51,6 +51,8 @@ st.markdown(f"""
     .st-emotion-cache-1wv6e1s {{
         color: {color};
     }}
+
+    
     </style>
     """, unsafe_allow_html=True)
 
