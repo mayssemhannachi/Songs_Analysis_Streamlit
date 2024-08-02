@@ -27,28 +27,32 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     scope="user-read-recently-played"
 ))
 
-# Streamlit UI
+# page config
 st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', layout='wide', initial_sidebar_state='expanded')
 
 #with open("style.css") as f:
  #   st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# Sidebar
+# SIDEBAR
+
+# Display the Spotify logo
+st.sidebar.image('https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png', width=200)
+
+# Display the title and description
+st.sidebar.title('Dashboard `Configuration 🎛️`')
 
 # Display the user's profile details
 user = sp.current_user()
-st.write(user)  # Check the structure of the user object
-st.write(f"Logged in as {user.get('display_name', 'N/A')}")
-st.write(f"Country: {user.get('country', 'N/A')}")
-st.write(f"Followers: {user.get('followers', {}).get('total', 'N/A')}")
-st.write(f"Product: {user.get('product', 'N/A')}")
-if 'images' in user and len(user['images']) > 0:
-    st.image(user['images'][0]['url'], width=200)
+st.sidebar.write(f"Logged in as {user.get('display_name', 'N/A')}")
 if 'email' in user:
-    st.write(f"Email: {user.get('email', 'N/A')}")
+    st.sidebar.write(f"Email: {user.get('email', 'N/A')}")
 
-st.sidebar.title('Dashboard `Configuration 🎛️`')
 st.sidebar.subheader('Customize the dashboard with the options below')
+
+st.sidebar.markdown('''
+---
+Created with ❤️ by [Mayssem Hn](https://github.com/mayssemhannachi/).''')
+
 
 with elements("new_element"):
     st.title('Spotify Songs Analysis')
