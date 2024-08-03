@@ -78,15 +78,11 @@ This app allows you to analyze your Spotify listening habits.
 # Display the title and description
 st.sidebar.title('App Configuration 🎛️')
 
-
-
 # Customization options
 color = st.sidebar.color_picker('Pick a color', '#00f900')
 
 # Apply the selected color to the CSS
 load_css(color)
-
-
 
 # Number of recently played tracks retrieved
 number = st.sidebar.slider("Pick the number of recent played tracks you want to analyse", 0, 50)
@@ -94,7 +90,6 @@ number = st.sidebar.slider("Pick the number of recent played tracks you want to 
 st.sidebar.markdown('''
 ---
 Created with ❤️ by [Mayssem Hn](https://github.com/mayssemhannachi/).''')
-
 
 # Row A
 
@@ -105,8 +100,7 @@ top_artists = sp.current_user_top_artists(limit=1)
 # Fetch currently playing track
 currently_playing = sp.currently_playing()
 
-# Display most played song, artist, and currently playing song 
-
+# Display most played song, artist, and currently playing song
 st.markdown('### Basic Information')
 col1, col2, col3 = st.columns(3)
 
@@ -132,13 +126,9 @@ with col3:
     else:
         col3.metric('Currently Playing', "No song is currently playing.")
 
-
 with elements("new_element"):
     st.title('Spotify Songs Analysis')
     mui.Typography("Analyze your Spotify listening habits with Streamlit and the Spotify API!")
-
-
-
 
 if number > 0:
     # Get the user's recently played tracks
@@ -216,6 +206,14 @@ if number > 0:
         genre_list = [genre for sublist in df['genres'] for genre in sublist]
         genre_counts = pd.Series(genre_list).value_counts().head(10)
         st.bar_chart(genre_counts)
+
+        # Top Genre
+        st.subheader('Top Genre')
+        if not genre_counts.empty:
+            top_genre = genre_counts.idxmax()
+            st.write(f'Top Genre: {top_genre}')
+        else:
+            st.write('No genre data available.')
 
         # Optionally, display the DataFrame for more detailed analysis
         st.subheader('Raw Data')
