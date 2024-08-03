@@ -57,25 +57,14 @@ def load_css(color):
 st.sidebar.markdown("""
 <div style="display: flex; align-items: center;">
     <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png" width="100" style="margin-right: 20px;">
-    <img src="https://streamlit.io/images/brand/streamlit-mark-color.png" width="100">
 </div>
 """, unsafe_allow_html=True)
-
-# Display the title and description
-st.sidebar.title('Dashboard `Configuration 🎛️`')
 
 # Display the user's profile details
 user = sp.current_user()
 st.sidebar.write(f"Logged in as {user.get('display_name', 'N/A')}")
 if 'email' in user:
     st.sidebar.write(f"Email: {user.get('email', 'N/A')}")
-
-# Customization options
-st.sidebar.subheader('Customization Options')
-color = st.sidebar.color_picker('Pick a color', '#00f900')
-
-# Apply the selected color to the CSS
-load_css(color)
 
 # Display the app info
 st.sidebar.subheader('About')
@@ -86,8 +75,21 @@ This app allows you to analyze your Spotify listening habits.
 - Powered by the Spotify API.
 ''')
 
+# Display the title and description
+st.sidebar.title('App Configuration 🎛️')
+
+
+
+# Customization options
+color = st.sidebar.color_picker('Pick a color', '#00f900')
+
+# Apply the selected color to the CSS
+load_css(color)
+
+
+
 # Number of recently played tracks retrieved
-number = st.sidebar.slider("Pick a number", 0, 50)
+number = st.sidebar.slider("Pick the number of recent played tracks you want to analyse", 0, 50)
 
 st.sidebar.markdown('''
 ---
