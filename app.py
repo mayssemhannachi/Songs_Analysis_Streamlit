@@ -30,9 +30,30 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 # Page config
 st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', layout='wide', initial_sidebar_state='expanded')
 
-# Sidebar
+# Load custom CSS with dynamic color
+def load_css(color):
+    css = f"""
+    <style>
+    .stSlider > div > div > div > div {{
+        background: {color};
+    }}
+    .stSlider > div > div > div {{
+        color: {color};
+    }}
+    .st-emotion-cache-10y5sf6 {{
+        color: {color};
+    }}
+    .st-emotion-cache-1wv6e1s {{
+        color: {color};
+    }}
+    .st-emotion-cache-1wivap2 {{
+        font-size: 14px;
+    }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
 
-# Display the Spotify and Streamlit logos side by side
+# Sidebar
 st.sidebar.markdown("""
 <div style="display: flex; align-items: center;">
     <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png" width="100" style="margin-right: 20px;">
@@ -53,6 +74,9 @@ if 'email' in user:
 st.sidebar.subheader('Customization Options')
 color = st.sidebar.color_picker('Pick a color', '#00f900')
 
+# Apply the selected color to the CSS
+load_css(color)
+
 # Display the app info
 st.sidebar.subheader('About')
 st.sidebar.info('''
@@ -69,27 +93,8 @@ st.sidebar.markdown('''
 ---
 Created with ❤️ by [Mayssem Hn](https://github.com/mayssemhannachi/).''')
 
-with elements("new_element"):
-    st.title('Spotify Songs Analysis')
-    mui.Typography("Analyze your Spotify listening habits with Streamlit and the Spotify API!")
 
-# Inject custom CSS to style the sidebar and slider
-st.markdown(f"""
-    <style>
-    .stSlider > div > div > div > div {{
-        background: {color};
-    }}
-    .stSlider > div > div > div {{
-        color: {color};
-    }}
-    .st-emotion-cache-10y5sf6 {{
-        color: {color};
-    }}
-    .st-emotion-cache-1wv6e1s {{
-        color: {color};
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+# Row A
 
 # Fetch top tracks and artists
 top_tracks = sp.current_user_top_tracks(limit=1)
@@ -98,28 +103,40 @@ top_artists = sp.current_user_top_artists(limit=1)
 # Fetch currently playing track
 currently_playing = sp.currently_playing()
 
+# Display most played song, artist, and currently playing song 
+
+st.markdown('### Basic Information')
+col1, col2, col3 = st.columns(3)
+
 # Display most played song
-if top_tracks and top_tracks['items']:
-    most_played_song = top_tracks['items'][0]['name']
-    most_played_song_artist = top_tracks['items'][0]['artists'][0]['name']
-    st.sidebar.subheader('Most Played Song')
-    st.sidebar.write(f"{most_played_song} by {most_played_song_artist}")
+with col1:
+    if top_tracks and top_tracks['items']:
+        most_played_song = top_tracks['items'][0]['name']
+        most_played_song_artist = top_tracks['items'][0]['artists'][0]['name']
+        col1.metric('Most Played Song', f"{most_played_song} by {most_played_song_artist}")
 
 # Display most played artist
-if top_artists and top_artists['items']:
-    most_played_artist = top_artists['items'][0]['name']
-    st.sidebar.subheader('Most Played Artist')
-    st.sidebar.write(most_played_artist)
+with col2:
+    if top_artists and top_artists['items']:
+        most_played_artist = top_artists['items'][0]['name']
+        col2.metric('Most Played Artist', most_played_artist)
 
 # Display currently playing song
-if currently_playing and currently_playing['is_playing']:
-    currently_playing_song = currently_playing['item']['name']
-    currently_playing_artist = currently_playing['item']['artists'][0]['name']
-    st.sidebar.subheader('Currently Playing')
-    st.sidebar.write(f"{currently_playing_song} by {currently_playing_artist}")
-else:
-    st.sidebar.subheader('Currently Playing')
-    st.sidebar.write("No song is currently playing.")
+with col3:
+    if currently_playing and currently_playing['is_playing']:
+        currently_playing_song = currently_playing['item']['name']
+        currently_playing_artist = currently_playing['item']['artists'][0]['name']
+        col3.metric('Currently Playing', f"{currently_playing_song} by {currently_playing_artist}")
+    else:
+        col3.metric('Currently Playing', "No song is currently playing.")
+
+
+with elements("new_element"):
+    st.title('Spotify Songs Analysis')
+    mui.Typography("Analyze your Spotify listening habits with Streamlit and the Spotify API!")
+
+
+
 
 if number > 0:
     # Get the user's recently played tracks
