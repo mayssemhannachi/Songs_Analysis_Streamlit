@@ -28,7 +28,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 ))
 
 # Page config
-st.set_page_config(page_title='Spotify Analysis', page_icon=':musical_note:', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='Spotify Analysis', page_icon='🧸', layout='wide', initial_sidebar_state='expanded')
 
 # Load custom CSS with dynamic color
 def load_css(color):
@@ -188,19 +188,7 @@ if number > 0:
         # Set track_name as the index
         df.set_index('track_name', inplace=True)
 
-        # Display audio features using a bar chart in Streamlit
-        st.subheader('Audio Features of Your Recently Played Songs')
-        st.bar_chart(df[['danceability', 'energy', 'loudness', 'valence', 'tempo']], height=500)
-
-        # Track Popularity Analysis
-        st.subheader('Track Popularity Analysis')
-        st.bar_chart(df['popularity'], height=500)
-
-        # Top Artists
-        st.subheader('Top Artists')
-        top_artists = df['artist'].value_counts().head(10)
-        st.bar_chart(top_artists)
-
+    
         # Genre Distribution
         st.subheader('Genre Distribution')
         genre_list = [genre for sublist in df['genres'] for genre in sublist]
