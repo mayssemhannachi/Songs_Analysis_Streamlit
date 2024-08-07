@@ -1,3 +1,5 @@
+
+
 .st-emotion-cache-1v0mbdj {
     object-fit: cover;
     background-color: #f0f0f0;
@@ -5,3 +7,24 @@
     border-radius: 50%; /* Make the image circular */
     overflow: hidden; /* Ensure the image does not overflow the container */
   }
+
+.bars {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 3rem;
+    gap: 0.1rem; /* Decreased gap */
+}
+.bar {
+    width: 0.15rem; /* Decreased width */
+    background-color: white; 
+    animation: bounce 1s infinite;
+}
+.bar1 { animation-delay: 0s; }
+.bar2 { animation-delay: 0.1s; }
+.bar3 { animation-delay: 0.2s; }
+
+@keyframes bounce {
+    0%, 100% { height: 20%; }
+    50% { height: 100%; }
+}
