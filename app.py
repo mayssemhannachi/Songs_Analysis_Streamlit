@@ -4,8 +4,6 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
-from streamlit_lottie import st_lottie
-import requests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,14 +32,6 @@ st.set_page_config(page_title='HarmonyHub', page_icon='🧸', layout='wide', ini
 # Load the CSS file
 with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# Function to load Lottie animation from a URL
-def load_lottie_url(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
-
 
 
 
@@ -85,27 +75,44 @@ current_track = sp.current_playback()
 if current_track:
     background_color = "#1DB954"  # You can change this to any color you prefer
 
-    # Load the Lottie animation
-    lottie_animation = load_lottie_url("https://lottie.host/a8856bc8-09f5-41bb-ab5d-ce4797e1a6a9/bALctmN05s.json")
-
-    # Display the song's details    
-    
+    # Display the song's details
     with col3:
         st.markdown(f"""
             <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; display: flex; align-items: center;">
-                <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 10px;">
+                <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 20px; border-radius:5px;">
                 <div style="flex-grow: 1;">
-                    <p style="margin: 0;">{current_track['item']['name']}</p>
-                    <p style="margin: 0; color: black;">{current_track['item']['artists'][0]['name']}</p>
-                </div>
-                <div id="lottie-container" style="width: 50px; height: 50px;">
-                    <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script> 
-
-                <dotlottie-player src="https://lottie.host/a8856bc8-09f5-41bb-ab5d-ce4797e1a6a9/bALctmN05s.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></dotlottie-player>
+                    <div style="display: flex; align-items: center;">
+                        <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']}</p>
+                        <div style="margin-right: 10px;">
+                        </div>
+                    </div>
+                    <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
         
-       
-    
-    
+col1,col2= st.columns([5,5])     
+# Display the user's top artists
+with col1:
+    st.header("Top Artists 🎤")
+    top_artists = sp.current_user_top_artists(limit=10)
+    for i, artist in enumerate(top_artists['items']):
+        st.write(f"{i + 1}. {artist['name']}")
+    st.markdown(
+        """
+        <div style="background-color: #14171d; padding: 10px; border-radius: 5px;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col2:
+    st.header("Top Tracks 🎵")
+    st.markdown(
+        """
+        <div style="background-color: #14171d; padding: 10px; border-radius: 5px;">
+            
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
