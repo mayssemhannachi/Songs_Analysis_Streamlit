@@ -115,8 +115,8 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    # Display the top 10 artists' names
-    for i, artist in enumerate(top_artists['items']):
+    # Display the top 5 artists' names
+    for i, artist in enumerate(top_artists['items'][:5]):
         # Extract the artist's name and image URL
         artist_name = artist['name']
         artist_image_url = artist['images'][0]['url'] if artist['images'] else None
@@ -132,6 +132,16 @@ with col1:
             """,
             unsafe_allow_html=True
         )
+    
+    #see more button
+    st.markdown(
+        f"""
+        <div class="see-all-btn" >
+            <a href="https://open.spotify.com/collection/artists" target="_blank">SEE ALL</a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 with col2:
     st.header("Top Tracks 🎵")
@@ -151,7 +161,7 @@ with col2:
 
     st.markdown(
         f"""
-        <div class="circles-gallery" >
+        <div class="square-gallery " >
             {track_images_html}
         </div>
         """,
@@ -159,11 +169,27 @@ with col2:
     )
 
     # Display the top tracks 
-    
+    for i, track in enumerate(top_tracks['items'][:10]):
+        track_name = track['name']
+        track_image_url = track['album']['images'][0]['url'] if track['album']['images'] else None
+        artist_name = track['artists'][0]['name']
+
+        st.markdown(
+            f"""
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 50px;"> 
+                <p style="color: white; opacity: 0.5; margin-right: 10px; weight:200; ">{i+1}</p>
+                {'<img src="' + track_image_url + '" width="30" height="30" style="border-radius: 50%; margin-right: 10px;">' if track_image_url else ''}
+                <p style="color: white; line-height: 30px;">{track_name} - {artist_name}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    #see more button
     st.markdown(
-        """
-        <div style="background-color: #14171d; padding: 10px; border-radius: 5px;">
-            
+        f"""
+        <div class="see-all-btn" >
+            <a href="https://open.spotify.com/collection/tracks" target="_blank">SEE ALL</a>
         </div>
         """,
         unsafe_allow_html=True
