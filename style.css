@@ -6,13 +6,13 @@
     overflow: hidden; /* Ensure the image does not overflow the container */
   }
 :root {
-  --size-pictureframe: 180px;
+  --size-pictureframe: 200px;
 }
   .circles-gallery {
     position: relative;
     height: var(--size-pictureframe);
     margin-left: 0;
-    padding: 120px 80px 120px 80px;
+    padding: 140px 180px 180px 180px;
     background-color:  #14171d;
     display: flex;
     justify-content: center;
@@ -24,33 +24,45 @@
     display: inline-block;
     aspect-ratio: 1;
     border-radius: 50%;
-    transition: transform 0.3s ease, z-index 0.3s ease;
+    transition: transform 0.3s ease;
     
 
   }
   .circles-gallery > *:nth-child(1) {
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 20;
-    height: 200px;
-    width: 200px;
+    height: 240px;
+    width: 240px;
+  }
+
+  .circles-gallery > *:nth-child(1):hover,
+  .circles-gallery > *:nth-child(1):focus-within {
+    transform: scale(1.2);
   }
   .circles-gallery > *:nth-child(2) {
-    left: 30%;
-    transform: translateX(-50%);
+    right: 50%;
     z-index: 10;
     height: var(--size-pictureframe);
     width: var(--size-pictureframe);
   }
+
+  .circles-gallery > *:nth-child(2):hover,
+  .circles-gallery > *:nth-child(2):focus-within {
+
+    transform: translateX(-25%);
+  }
+
   .circles-gallery > *:nth-child(3) {
-    left: 70%;
-    transform: translateX(-50%);
+    left: 50%;
     z-index: 10;
     height: var(--size-pictureframe);
     width: var(--size-pictureframe);
   }
-  .circles-gallery > *:hover,
-  .circles-gallery > *:focus-within {
-    z-index: 30;
-    transform: translateX(-50%) scale(1.1);
-  }
+
+.circles-gallery > *:nth-child(3):hover,
+.circles-gallery > *:nth-child(3):focus-within {
+  transform: translateX(25%);
+}
+
+
+
+

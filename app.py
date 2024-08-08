@@ -135,6 +135,31 @@ with col1:
 
 with col2:
     st.header("Top Tracks 🎵")
+    # Get the user's top tracks with the picture 
+    top_tracks = sp.current_user_top_tracks(limit=20)
+    top_tracks_images = []
+    for track in top_tracks['items']:
+        track_image = track['album']['images'][0]['url'] if track['album']['images'] else None
+        top_tracks_images.append(track_image)
+
+    #top 3 tracks
+    top_3_tracks = top_tracks_images[:3]
+    track_images_html = ""
+    for track_image in top_3_tracks:
+        if track_image:
+            track_images_html += f'<img src="{track_image}" alt="Track Image">'
+
+    st.markdown(
+        f"""
+        <div class="circles-gallery" >
+            {track_images_html}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Display the top tracks 
+    
     st.markdown(
         """
         <div style="background-color: #14171d; padding: 10px; border-radius: 5px;">
