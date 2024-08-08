@@ -23,7 +23,8 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=client_id,
     client_secret=client_secret,
     redirect_uri=redirect_uri,
-    scope="user-read-recently-played user-top-read user-read-playback-state"
+    scope="user-read-recently-played user-top-read user-read-playback-state",
+    requests_timeout=30  # Increase the timeout to 30 seconds
 ))
 
 # Page config
@@ -91,20 +92,46 @@ if current_track:
             </div>
         """, unsafe_allow_html=True)
         
-col1,col2= st.columns([5,5])     
+col1,col2= st.columns([5,5])  
+   
 # Display the user's top artists
 with col1:
     st.header("Top Artists 🎤")
     top_artists = sp.current_user_top_artists(limit=10)
-    for i, artist in enumerate(top_artists['items']):
-        st.write(f"{i + 1}. {artist['name']}")
+
+    # Display the top 3 artists' pictures next to each other
+    top_3_artists = top_artists['items'][:3]
+    artist_images_html = ""
+    for artist in top_3_artists:
+        artist_image_url = artist['images'][0]['url'] if artist['images'] else None
+        if artist_image_url:
+            artist_images_html += f'<img src="{artist_image_url}" alt="{artist["name"]}">'
+
     st.markdown(
-        """
-        <div style="background-color: #14171d; padding: 10px; border-radius: 5px;">
+        f"""
+        <div class="circles-gallery" >
+            {artist_images_html}
         </div>
         """,
         unsafe_allow_html=True
     )
+    # Display the top 10 artists' names
+    for i, artist in enumerate(top_artists['items']):
+        # Extract the artist's name and image URL
+        artist_name = artist['name']
+        artist_image_url = artist['images'][0]['url'] if artist['images'] else None
+
+        # Display the artist's details within a div with custom background color
+        st.markdown(
+            f"""
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 50px;"> 
+                <p style="color: white; opacity: 0.5; margin-right: 10px; weight:200; ">{i+1}</p>
+                {'<img src="' + artist_image_url + '" width="30" height="30" style="border-radius: 50%; margin-right: 10px;">' if artist_image_url else ''}
+                <p style="color: white; line-height: 30px;">{artist_name}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 with col2:
     st.header("Top Tracks 🎵")
