@@ -28,7 +28,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 ))
 
 # Page config
-st.set_page_config(page_title='HarmonyHub', page_icon='🧸', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='HarmonyHub', page_icon='🔗', layout='wide', initial_sidebar_state='expanded')
 
 # Load the CSS file
 with open("style.css") as f:
@@ -69,7 +69,7 @@ col1, col2, col3= st.columns([5,2,5])
 
 # Add the header with the app name
 with col1:
-    st.title("HarmonyHub 🧸")
+    st.title("HarmonyHub 🔗")
 
 # Song playing
 current_track = sp.current_playback()
@@ -124,9 +124,9 @@ with col1:
         # Display the artist's details within a div with custom background color
         st.markdown(
             f"""
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 50px;"> 
-                <p style="color: white; opacity: 0.5; margin-right: 10px; weight:200; ">{i+1}</p>
-                {'<img src="' + artist_image_url + '" width="30" height="30" style="border-radius: 50%; margin-right: 10px;">' if artist_image_url else ''}
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                <p style="color: white; opacity: 0.5; margin-right: 20px; font-weight:200; font-size:20px;">{i+1}</p>
+                {'<img src="' + artist_image_url + '" width="50" height="50" style="border-radius: 50%; margin-right: 10px;">' if artist_image_url else ''}
                 <p style="color: white; line-height: 30px;">{artist_name}</p>
             </div>
             """,
@@ -169,17 +169,20 @@ with col2:
     )
 
     # Display the top tracks 
-    for i, track in enumerate(top_tracks['items'][:10]):
+    for i, track in enumerate(top_tracks['items'][:9]):
         track_name = track['name']
         track_image_url = track['album']['images'][0]['url'] if track['album']['images'] else None
         artist_name = track['artists'][0]['name']
 
         st.markdown(
             f"""
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 50px;"> 
-                <p style="color: white; opacity: 0.5; margin-right: 10px; weight:200; ">{i+1}</p>
-                {'<img src="' + track_image_url + '" width="30" height="30" style="border-radius: 50%; margin-right: 10px;">' if track_image_url else ''}
-                <p style="color: white; line-height: 30px;">{track_name} - {artist_name}</p>
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+             <p style="color: white; opacity: 0.5; margin-right: 20px; font-weight:200; font-size:20px;">{i+1}</p>
+            {'<img src="' + track_image_url + '" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">' if track_image_url else ''}
+            <div style="flex-grow: 1;">
+                <p style="color: white; line-height: 30px;">{track_name} </p>
+                <p style="color: white; opacity: 0.5; margin-left: 10px; font-weight:200; ">{artist_name}</p>
+            </div>
             </div>
             """,
             unsafe_allow_html=True
