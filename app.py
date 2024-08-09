@@ -179,9 +179,9 @@ with col2:
             <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
              <p style="color: white; opacity: 0.5; margin-right: 20px; font-weight:200; font-size:20px;">{i+1}</p>
             {'<img src="' + track_image_url + '" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">' if track_image_url else ''}
-            <div style="flex-grow: 1;">
-                <p style="color: white; line-height: 30px;">{track_name} </p>
-                <p style="color: white; opacity: 0.5; margin-left: 10px; font-weight:200; ">{artist_name}</p>
+            <div style="flex-grow: ;">
+            <p style="color: white; margin-bottom: 2px;">{track_name} </p>
+            <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{artist_name}</p>
             </div>
             </div>
             """,
