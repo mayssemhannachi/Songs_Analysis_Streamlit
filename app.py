@@ -315,3 +315,82 @@ with col2:
 
 # Add space between Row A and Row B
 st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+
+# Display the user's statistics based on their taste
+
+# Extract the user's top 50 tracks
+top_tracks = sp.current_user_top_tracks(limit=50)
+data = []
+
+for track in top_tracks['items']:
+    track_id = track['id']
+    track_features = sp.audio_features([track_id])[0]  # Get audio features of the track
+
+    # Categorize the track based on audio features
+    mood = 'Happy' if track_features['valence'] >= 0.5 else 'Sad'
+    rhythm = 'Danceable' if track_features['danceability'] >= 0.5 else 'Unrhythmic'
+    tempo = 'Fast' if track_features['tempo'] >= 120 else 'Slow'
+    acoustic = 'Acoustic' if track_features['acousticness'] >= 0.5 else 'Electric'
+    energy = 'Energetic' if track_features['energy'] >= 0.5 else 'Relaxing'
+    loudness = 'Loud' if track_features['loudness'] >= -5 else 'Soft'
+    instrumental = 'Instrumental' if track_features['instrumentalness'] >= 0.5 else 'With Vocals'
+    live = 'Live' if track_features['liveness'] >= 0.5 else 'Studio'
+    spoken = 'Spoken' if track_features['speechiness'] >= 0.5 else 'Musical'
+
+    data.append({
+        'track_name': track['name'],
+        'mood': mood,
+        'rhythm': rhythm,
+        'tempo': tempo,
+        'acoustic': acoustic,
+        'energy': energy,
+        'loudness': loudness,
+        'instrumental': instrumental,
+        'live': live,
+        'spoken': spoken
+    })
+
+# Convert the data into a DataFrame
+df = pd.DataFrame(data)
+
+# Debugging: Print the DataFrame columns to check if all expected columns are present
+print("DataFrame columns:", df.columns)
+
+# Calculate the percentage of each category
+criteria = ['mood', 'rhythm', 'tempo', 'acoustic', 'energy', 'loudness', 'instrumental', 'live', 'spoken']
+
+percentages = {}
+for criterion in criteria:
+    if criterion in df.columns:
+        value_counts = df[criterion].value_counts(normalize=True) * 100
+        percentages[criterion] = value_counts
+
+# Create a DataFrame to display the percentages
+percentages_df = pd.DataFrame(percentages).T
+
+# Adjust the column names for display purposes
+percentages_df.columns = [f"{col}" for col in percentages_df.columns]
+
+# Display the user's music taste statistics
+st.header("Taste")
+
+# Display the user's music taste statistics
+for criterion in criteria:
+        if criterion in percentages_df.index:
+            most_frequent_value = percentages_df.loc[criterion].idxmax()
+            least_frequent_value = percentages_df.loc[criterion].idxmin()
+            percentage = percentages_df.loc[criterion, most_frequent_value]
+            st.markdown(
+                f"""
+                <div style="display: flex; align-items: center; justify-content: space-between; height: 70px;">
+                    <p style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px;">{least_frequent_value}</p>
+                    <div style="width: 200px; margin-right: 20px;">
+                        <div style="background-color: #6e6e6e; height: 10px; border-radius: 5px;">
+                            <div style="background-color: #1DB954; height: 10px; width: {percentage}%; border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                    <p style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px;">{most_frequent_value}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
