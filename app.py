@@ -117,7 +117,7 @@ with col1:
         unsafe_allow_html=True
     )
     # Display the top 5 artists' names
-    for i, artist in enumerate(top_artists['items'][:5]):
+    for i, artist in enumerate(top_artists['items'][:9]):
         # Extract the artist's name and image URL
         artist_name = artist['name']
         artist_image_url = artist['images'][0]['url'] if artist['images'] else None
@@ -289,7 +289,7 @@ with col2:
     st.header("Top Genres 🎶")
 
     # Get the top genres from the DataFrame
-    genres = df.explode('genres')['genres'].value_counts().head(5)
+    genres = df.explode('genres')['genres'].value_counts().head(9)
 
     # Display the top genres
     for i, (genre, count) in enumerate(genres.items()):
@@ -335,7 +335,7 @@ for track in top_tracks['items']:
     loudness = 'Loud' if track_features['loudness'] >= -5 else 'Soft'
     instrumental = 'Instrumental' if track_features['instrumentalness'] >= 0.5 else 'With Vocals'
     live = 'Live' if track_features['liveness'] >= 0.5 else 'Studio'
-    spoken = 'Spoken' if track_features['speechiness'] >= 0.5 else 'Musical'
+    spoken = 'Musical' if track_features['speechiness'] >= 0.5 else 'Spoken'
 
     data.append({
         'track_name': track['name'],
@@ -356,6 +356,9 @@ df = pd.DataFrame(data)
 # Debugging: Print the DataFrame columns to check if all expected columns are present
 print("DataFrame columns:", df.columns)
 
+#Debugging: Print the first few rows of the DataFrame to check the data
+print(df.head(20))
+
 # Calculate the percentage of each category
 criteria = ['mood', 'rhythm', 'tempo', 'acoustic', 'energy', 'loudness', 'instrumental', 'live', 'spoken']
 
@@ -368,29 +371,74 @@ for criterion in criteria:
 # Create a DataFrame to display the percentages
 percentages_df = pd.DataFrame(percentages).T
 
+# List of all criteria
+all_criteria = ['mood', 'rhythm', 'tempo', 'acoustic', 'energy', 'loudness', 'instrumental', 'live', 'spoken']
+
+# Ensure all criteria are included in percentages_df with 0% if they are not present
+for criterion in all_criteria:
+    if criterion not in percentages_df.index:
+        # Add criterion with 0% values for all categories
+        percentages_df.loc[criterion] = pd.Series([0] * len(percentages_df.columns), index=percentages_df.columns)
+
 # Adjust the column names for display purposes
 percentages_df.columns = [f"{col}" for col in percentages_df.columns]
+
+# Debugging: Print the DataFrame to check the data
+print(percentages_df)
 
 # Display the user's music taste statistics
 st.header("Taste")
 
-# Display the user's music taste statistics
-for criterion in criteria:
-        if criterion in percentages_df.index:
-            most_frequent_value = percentages_df.loc[criterion].idxmax()
-            least_frequent_value = percentages_df.loc[criterion].idxmin()
-            percentage = percentages_df.loc[criterion, most_frequent_value]
-            st.markdown(
-                f"""
-                <div style="display: flex; align-items: center; justify-content: space-between; height: 70px;">
-                    <p style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px;">{least_frequent_value}</p>
-                    <div style="width: 200px; margin-right: 20px;">
-                        <div style="background-color: #6e6e6e; height: 10px; border-radius: 5px;">
-                            <div style="background-color: #1DB954; height: 10px; width: {percentage}%; border-radius: 5px;"></div>
+# Loop through criteria in sets of three
+for i in range(0, len(all_criteria), 3):
+    with st.container():
+        cols = st.columns(3)  # Create three columns for each row
+        for j, criterion in enumerate(all_criteria[i:i+3]):
+            if criterion in percentages_df.index:
+                # Extract the top two non-null values for each criterion
+                values = percentages_df.loc[criterion].dropna().sort_values(ascending=False)
+                
+                # Handle cases where there are fewer than two values
+                if len(values) == 0:
+                    # Default values if no data available
+                    value_1, percentage_1 = "N/A", 0
+                    value_2, percentage_2 = "N/A", 0
+                elif len(values) == 1:
+                    # Handle case with only one value
+                    value_1, percentage_1 = values.index[0], values.iloc[0]
+                    if value_1 == 'Spoken' and percentage_1 == 100:
+                        # Special case: if Spoken is 100%, set value_2 to 'Musical'
+                        value_2, percentage_2 = 'Musical', 0
+                    else:
+                        value_2, percentage_2 = "N/A", 0
+                else:
+                    # Check if 'Spoken' is in the values and its percentage is 100%
+                    if 'Spoken' in values.index and values.loc['Spoken'] == 100:
+                        value_1, percentage_1 = 'Spoken', 100
+                        value_2, percentage_2 = 'Musical', 0
+                    else:
+                        # If there are two or more values, use the top two
+                        top_values = values.head(2)
+                        value_1, percentage_1 = top_values.index[0], top_values.iloc[0]
+                        value_2, percentage_2 = top_values.index[1], top_values.iloc[1]
+            else:
+                # Default values if not found in percentages_df
+                value_1, percentage_1 = "N/A", 0
+                value_2, percentage_2 = "N/A", 0
+
+            # Display the criterion in the respective column
+            with cols[j]:
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; justify-content: space-between; background-color: #14171d; border-radius:5px;padding:10px;">
+                        <p style="color: white; font-weight:800; font-size:15px; margin-right: 10px;">{value_1}</p>
+                        <div style="width: 150px; margin: 0 10px;">
+                            <div style="background-color: #6e6e6e; height: 6px; border-radius: 5px;">
+                                <div style="background-color: #1DB954; height: 6px; width: {percentage_1}%; border-radius: 5px;"></div>
+                            </div>
                         </div>
+                        <p style="color: white; font-weight:800; font-size:15px; margin-left: 10px;">{value_2}</p>
                     </div>
-                    <p style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px;">{most_frequent_value}</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                    """,
+                    unsafe_allow_html=True
+                )
