@@ -390,55 +390,147 @@ print(percentages_df)
 st.header("Taste")
 
 # Loop through criteria in sets of three
-for i in range(0, len(all_criteria), 3):
-    with st.container():
-        cols = st.columns(3)  # Create three columns for each row
-        for j, criterion in enumerate(all_criteria[i:i+3]):
-            if criterion in percentages_df.index:
-                # Extract the top two non-null values for each criterion
-                values = percentages_df.loc[criterion].dropna().sort_values(ascending=False)
-                
-                # Handle cases where there are fewer than two values
-                if len(values) == 0:
-                    # Default values if no data available
-                    value_1, percentage_1 = "N/A", 0
-                    value_2, percentage_2 = "N/A", 0
-                elif len(values) == 1:
-                    # Handle case with only one value
-                    value_1, percentage_1 = values.index[0], values.iloc[0]
-                    if value_1 == 'Spoken' and percentage_1 == 100:
-                        # Special case: if Spoken is 100%, set value_2 to 'Musical'
-                        value_2, percentage_2 = 'Musical', 0
-                    else:
-                        value_2, percentage_2 = "N/A", 0
-                else:
-                    # Check if 'Spoken' is in the values and its percentage is 100%
-                    if 'Spoken' in values.index and values.loc['Spoken'] == 100:
-                        value_1, percentage_1 = 'Spoken', 100
-                        value_2, percentage_2 = 'Musical', 0
-                    else:
-                        # If there are two or more values, use the top two
-                        top_values = values.head(2)
-                        value_1, percentage_1 = top_values.index[0], top_values.iloc[0]
-                        value_2, percentage_2 = top_values.index[1], top_values.iloc[1]
-            else:
-                # Default values if not found in percentages_df
-                value_1, percentage_1 = "N/A", 0
-                value_2, percentage_2 = "N/A", 0
+# Custom HTML and CSS for the grid layout
+st.markdown(
+    """
+    <style>
+    .outer-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr); /* 3 columns with equal width */
+        gap: 20px; /* Space between outer grid items */
+        padding: 20px;
+        border-radius: 10px;
+    }
+    .grid-item {
+        background-color: #14171d;
+        border-radius: 5px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: white;
+        font-weight: 800;
+        font-size: 15px;
+    }
+    .progress-bar {
+        background-color: #6e6e6e;
+        height: 6px;
+        border-radius: 5px;
+        width: 150px;
+        margin: 0 10px;
+    }
+    .progress-bar-inner {
+        background-color: #1DB954;
+        height: 6px;
+        border-radius: 5px;
+    }
+    .container {
+        margin: 50px; /* Add more space between container and text */
+    }
+    </style>
+    """, 
+    unsafe_allow_html=True
+)
 
-            # Display the criterion in the respective column
-            with cols[j]:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; justify-content: space-between; background-color: #14171d; border-radius:5px;padding:10px;">
-                        <p style="color: white; font-weight:800; font-size:15px; margin-right: 10px;">{value_1}</p>
-                        <div style="width: 150px; margin: 0 10px;">
-                            <div style="background-color: #6e6e6e; height: 6px; border-radius: 5px;">
-                                <div style="background-color: #1DB954; height: 6px; width: {percentage_1}%; border-radius: 5px;"></div>
-                            </div>
-                        </div>
-                        <p style="color: white; font-weight:800; font-size:15px; margin-left: 10px;">{value_2}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+# Start the outer grid container
+st.markdown('<div class="outer-grid">', unsafe_allow_html=True)
+
+# Loop through the criteria and add items to the grid
+for i in range(0, len(all_criteria)):
+    criterion = all_criteria[i]
+    if criterion in percentages_df.index:
+        values = percentages_df.loc[criterion].dropna().sort_values(ascending=False)
+
+        if len(values) == 0:
+            value_1, percentage_1 = "N/A", 0
+            value_2, percentage_2 = "N/A", 0
+        elif len(values) == 1:
+            value_1, percentage_1 = values.index[0], values.iloc[0]
+            if value_1 == 'Spoken' and percentage_1 == 100:
+                value_2, percentage_2 = 'Musical', 0
+            else:
+                value_2, percentage_2 = "N/A", 0
+        else:
+            if 'Spoken' in values.index and values.loc['Spoken'] == 100:
+                value_1, percentage_1 = 'Spoken', 100
+                value_2, percentage_2 = 'Musical', 0
+            else:
+                top_values = values.head(2)
+                value_1, percentage_1 = top_values.index[0], top_values.iloc[0]
+                value_2, percentage_2 = top_values.index[1], top_values.iloc[1]
+    else:
+        value_1, percentage_1 = "N/A", 0
+        value_2, percentage_2 = "N/A", 0
+
+    # Add each item as a grid item inside the outer grid
+    st.markdown(
+        f"""
+        <div class="grid-item">
+            <p>{value_1}</p>
+            <div class="progress-bar">
+                <div class="progress-bar-inner" style="width: {percentage_1}%;"></div>
+            </div>
+            <p>{value_2}</p>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
+
+# Close the outer grid container
+st.markdown('</div>', unsafe_allow_html=True)
+
+
+#Display user's statistics by popularity, Decade, and Lenghth of the songs
+
+# Extract the user's top 50 tracks
+top_tracks = sp.current_user_top_tracks(limit=50)
+data = []
+
+for track in top_tracks['items']:
+    track_id = track['id']
+    track_features = sp.audio_features([track_id])[0]  # Get audio features of the track
+
+    # Categorize the track based on audio features
+    popularity = 'Popular' if track['popularity'] >= 70 else 'Average' if track['popularity'] >= 30 else 'Obsecure'
+    decade = 'Old' if track['album']['release_date'] < '2000' else 'Modern'
+    length = 'Long' if track_features['duration_ms'] >= 240000 else 'Short'
+
+    data.append({
+        'track_name': track['name'],
+        'popularity': popularity,
+        'decade': decade,
+        'length':all_ length
+    })
+
+# Convert the data into a DataFrame
+df = pd.DataFrame(data)
+
+# Debugging: Print the DataFrame columns to check if all expected columns are present
+print("DataFrame columns:", df.columns)
+
+# Debugging: Print the first few rows of the DataFrame to check the data
+print(df.head(20))
+
+# Calculate the percentage of each category
+criteria = ['popularity', 'decade', 'length']
+
+# Calculate the percentage of each decade
+decade_counts = df['decade'].value_counts(normalize=True) * 100
+
+# Add the percentage of each decade to the DataFrame
+percentages['decade'] = decade_counts
+
+# Create a DataFrame to display the percentages
+percentages_df = pd.DataFrame(percentages).T
+
+# Ensure all criteria are included in percentages_df with 0% if they are not present
+for criterion in all_criteria:
+    if criterion not in percentages_df.index:
+        # Add criterion with 0% values for all categories
+        percentages_df.loc[criterion] = pd.Series([0] * len(percentages_df.columns), index=percentages_df.columns)
+
+# Adjust the column names for display purposes
+percentages_df.columns = [f"{col}" for col in percentages_df.columns]
+
+# Debugging: Print the DataFrame to check the data
+print(percentages_df)
