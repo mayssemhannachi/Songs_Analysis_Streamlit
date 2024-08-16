@@ -4,6 +4,8 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
+import time
+import requests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,6 +28,8 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     scope="user-read-recently-played user-top-read user-read-playback-state",
     requests_timeout=30  # Increase the timeout to 30 seconds
 ))
+
+
 
 # Page config
 st.set_page_config(page_title='HarmonyHub', page_icon='🔗', layout='wide', initial_sidebar_state='expanded')
@@ -147,7 +151,7 @@ with col1:
 with col2:
     st.header("Top Tracks 🎵")
     # Get the user's top tracks with the picture
-    top_tracks = sp.current_user_top_tracks(limit=20)
+    top_tracks = sp.current_user_top_tracks(limit=50)
     top_tracks_images = []
     for track in top_tracks['items']:
         track_image = track['album']['images'][0]['url'] if track['album']['images'] else None
@@ -206,7 +210,6 @@ col1, col2 = st.columns([5, 5])
 
 
 # Extract user's most listened songs and store in a DataFrame
-top_tracks = sp.current_user_top_tracks(limit=50)
 data = []
 
 for track in top_tracks['items']:
@@ -316,10 +319,14 @@ with col2:
 # Add space between Row A and Row B
 st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
-# Display the user's statistics based on their taste
+# Display the user's taste in music
+st.header("Taste in Music 🎶")
+
+#Extract user's last listened songs
+recently_played = sp.current_user_recently_played(limit=50)
+tracks = recently_played['items']
 
 # Extract the user's top 50 tracks
-top_tracks = sp.current_user_top_tracks(limit=50)
 data = []
 
 for track in top_tracks['items']:
@@ -327,15 +334,15 @@ for track in top_tracks['items']:
     track_features = sp.audio_features([track_id])[0]  # Get audio features of the track
 
     # Categorize the track based on audio features
-    mood = 'Happy' if track_features['valence'] >= 0.5 else 'Sad'
+    mood = 'Sad' if track_features['valence'] <= 0.5 else 'Happy'
     rhythm = 'Danceable' if track_features['danceability'] >= 0.5 else 'Unrhythmic'
     tempo = 'Fast' if track_features['tempo'] >= 120 else 'Slow'
     acoustic = 'Acoustic' if track_features['acousticness'] >= 0.5 else 'Electric'
     energy = 'Energetic' if track_features['energy'] >= 0.5 else 'Relaxing'
-    loudness = 'Loud' if track_features['loudness'] >= -5 else 'Soft'
+    loudness = 'Soft' if track_features['loudness'] >= -5 else 'Loud'
     instrumental = 'Instrumental' if track_features['instrumentalness'] >= 0.5 else 'With Vocals'
     live = 'Live' if track_features['liveness'] >= 0.5 else 'Studio'
-    spoken = 'Musical' if track_features['speechiness'] >= 0.5 else 'Spoken'
+    spoken = 'Spoken' if track_features['speechiness'] >= 0.5 else 'Musical'
 
     data.append({
         'track_name': track['name'],
@@ -356,7 +363,7 @@ df = pd.DataFrame(data)
 # Debugging: Print the DataFrame columns to check if all expected columns are present
 print("DataFrame columns:", df.columns)
 
-#Debugging: Print the first few rows of the DataFrame to check the data
+# Debugging: Print the first few rows of the DataFrame to check the data
 print(df.head(20))
 
 # Calculate the percentage of each category
@@ -389,8 +396,7 @@ print(percentages_df)
 # Display the user's music taste statistics
 st.header("Taste")
 
-# Loop through criteria in sets of three
-# Custom HTML and CSS for the grid layout
+# Custom HTML and CSS for the grid layout and sliders
 st.markdown(
     """
     <style>
@@ -412,17 +418,37 @@ st.markdown(
         font-weight: 800;
         font-size: 15px;
     }
-    .progress-bar {
-        background-color: #6e6e6e;
-        height: 6px;
-        border-radius: 5px;
+    .slider-container {
+        display: flex;
+        align-items: center;
         width: 150px;
         margin: 0 10px;
     }
-    .progress-bar-inner {
-        background-color: #1DB954;
+    .slider {
+        -webkit-appearance: none;
+        width: 100%;
         height: 6px;
+        background: #6e6e6e;
         border-radius: 5px;
+        outline: none;
+        opacity: 0.7;
+        transition: opacity .15s ease-in-out;
+    }
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #1DB954;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    .slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #1DB954;
+        border-radius: 50%;
+        cursor: pointer;
     }
     .container {
         margin: 50px; /* Add more space between container and text */
@@ -446,8 +472,8 @@ for i in range(0, len(all_criteria)):
             value_2, percentage_2 = "N/A", 0
         elif len(values) == 1:
             value_1, percentage_1 = values.index[0], values.iloc[0]
-            if value_1 == 'Spoken' and percentage_1 == 100:
-                value_2, percentage_2 = 'Musical', 0
+            if value_1 == 'Musical' and percentage_1 == 100:
+                value_2, percentage_2 = 'Spoken', 0
             else:
                 value_2, percentage_2 = "N/A", 0
         else:
@@ -458,17 +484,25 @@ for i in range(0, len(all_criteria)):
                 top_values = values.head(2)
                 value_1, percentage_1 = top_values.index[0], top_values.iloc[0]
                 value_2, percentage_2 = top_values.index[1], top_values.iloc[1]
+                
+            # Determine slider value based on the top criteria
+            if percentage_1 > percentage_2:
+                slider_value = 100 - percentage_1
+            else:
+                slider_value = percentage_2
+
     else:
         value_1, percentage_1 = "N/A", 0
         value_2, percentage_2 = "N/A", 0
+        slider_value = 0
 
     # Add each item as a grid item inside the outer grid
     st.markdown(
         f"""
         <div class="grid-item">
             <p>{value_1}</p>
-            <div class="progress-bar">
-                <div class="progress-bar-inner" style="width: {percentage_1}%;"></div>
+            <div class="slider-container">
+                <input type="range" min="0" max="100" value="{slider_value}" class="slider" disabled>
             </div>
             <p>{value_2}</p>
         </div>
@@ -480,57 +514,48 @@ for i in range(0, len(all_criteria)):
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-#Display user's statistics by popularity, Decade, and Lenghth of the songs
+# Display user's statistics by popularity, Decade, and Length of the songs
+col1, col2, col3 = st.columns([5, 5, 5])
 
-# Extract the user's top 50 tracks
-top_tracks = sp.current_user_top_tracks(limit=50)
-data = []
+# By popularity
+# Display user's statistics by popularity, decade, and length of the songs
+col1, col2, col3 = st.columns([5, 5, 5])
 
-for track in top_tracks['items']:
-    track_id = track['id']
-    track_features = sp.audio_features([track_id])[0]  # Get audio features of the track
+# By popularity
+with col1:
+    st.header("Popularity Analysis 📊")
 
-    # Categorize the track based on audio features
-    popularity = 'Popular' if track['popularity'] >= 70 else 'Average' if track['popularity'] >= 30 else 'Obsecure'
-    decade = 'Old' if track['album']['release_date'] < '2000' else 'Modern'
-    length = 'Long' if track_features['duration_ms'] >= 240000 else 'Short'
+    # Fetch the most popular songs on Spotify
+    top_spotify_tracks = sp.playlist_tracks('37i9dQZEVXbMDoHDwVN2tF', limit=50)  # Spotify Global Top 50 playlist
+    top_spotify_track_ids = [track['track']['id'] for track in top_spotify_tracks['items']]
 
-    data.append({
-        'track_name': track['name'],
-        'popularity': popularity,
-        'decade': decade,
-        'length':all_ length
-    })
+    # Extract user's most listened songs and store in a DataFrame
+    data = []
 
-# Convert the data into a DataFrame
-df = pd.DataFrame(data)
+    for track in top_tracks['items']:
+        track_id = track['id']
+        track_name = track['name']
+        popularity = track['popularity']
+        is_popular = track_id in top_spotify_track_ids
 
-# Debugging: Print the DataFrame columns to check if all expected columns are present
-print("DataFrame columns:", df.columns)
+        data.append({
+            'track_id': track_id,
+            'track_name': track_name,
+            'popularity': popularity,
+            'is_popular': is_popular
+        })
 
-# Debugging: Print the first few rows of the DataFrame to check the data
-print(df.head(20))
+    df = pd.DataFrame(data)
 
-# Calculate the percentage of each category
-criteria = ['popularity', 'decade', 'length']
+    # Categorize the tracks based on popularity
+    df['popularity_category'] = df['popularity'].apply(
+        lambda x: 'Popular' if x >= 70 else 'Average' if x >= 40 else 'Obscure'
+    )
 
-# Calculate the percentage of each decade
-decade_counts = df['decade'].value_counts(normalize=True) * 100
+    # Display the popularity distribution
+    popularity_counts = df['popularity_category'].value_counts()
+    st.bar_chart(popularity_counts)
 
-# Add the percentage of each decade to the DataFrame
-percentages['decade'] = decade_counts
-
-# Create a DataFrame to display the percentages
-percentages_df = pd.DataFrame(percentages).T
-
-# Ensure all criteria are included in percentages_df with 0% if they are not present
-for criterion in all_criteria:
-    if criterion not in percentages_df.index:
-        # Add criterion with 0% values for all categories
-        percentages_df.loc[criterion] = pd.Series([0] * len(percentages_df.columns), index=percentages_df.columns)
-
-# Adjust the column names for display purposes
-percentages_df.columns = [f"{col}" for col in percentages_df.columns]
-
-# Debugging: Print the DataFrame to check the data
-print(percentages_df)
+    # Show detailed data if needed
+    st.write("Detailed Popularity Analysis:")
+    st.dataframe(df[['track_name', 'popularity', 'popularity_category']])
