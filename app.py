@@ -528,14 +528,60 @@ col1, col2, col3 = st.columns([5, 5, 5])
 # By popularity
 
 with col1:
+    # Fetch the most popular songs on Spotify
+    top_spotify_tracks = sp.playlist_tracks('37i9dQZEVXbMDoHDwVN2tF', limit=50)  # Spotify Global Top 50 playlist
+    top_spotify_track_ids = [track['track']['id'] for track in top_spotify_tracks['items']]
+
+    # Extract user's most listened songs and store in a DataFrame
+    data = []
+
+    for track in top_tracks['items']:
+        track_id = track['id']
+        track_name = track['name']
+        popularity = track['popularity']
+        is_popular = track_id in top_spotify_track_ids
+
+        data.append({
+            'track_id': track_id,
+            'track_name': track_name,
+            'popularity': popularity,
+            'is_popular': is_popular
+        })
+
+    df = pd.DataFrame(data)
+
+    # Categorize the tracks based on popularity
+    df['popularity_category'] = df['popularity'].apply(
+        lambda x: 'Popular' if x >= 70 else 'Average' if x >= 40 else 'Obscure'
+    )
+
+    # Calculate the percentage of each category
+    popularity_percentages = df['popularity_category'].value_counts(normalize=True) * 100
+    
+    # Display the popularity statistics
     st.markdown(
-            f"""
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
-                <h5 style="color: white;  margin-right: 20px; font-size:20px; margin: 0;font-weight:800;">By Popularity 🤩</h5>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    f"""
+    <div style="background-color: #14171d; padding: 15px; border-radius: 5px; gap:20px; height: auto;"> 
+        <h5 style="color: white; margin-right: 20px; font-size:20px; margin: 0; font-weight:800;">By Popularity 🤩</h5>
+        
+        <h6 style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px; margin: 0;">Popular</h6>
+        <div style="background-color: #333; border-radius: 5px; overflow: hidden;">
+            <progress value="{popularity_percentages['Popular']}" max="100" style="width: 100%; height: 20px; background-color: #444; color: #1DB954;"></progress>
+        </div>
+        
+        <h6 style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px; margin: 0;">Average</h6>
+        <div style="background-color: #333; border-radius: 5px; overflow: hidden;">
+            <progress value="{popularity_percentages['Average']}" max="100" style="width: 100%; height: 20px; background-color: #444; color: #1DB954;"></progress>
+        </div>
+        
+        <h6 style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px; margin: 0;">Obscure</h6>
+        <div style="background-color: #333; border-radius: 5px; overflow: hidden;">
+            <progress value="{popularity_percentages['Obscure']}" max="100" style="width: 100%; height: 20px; background-color: #444; color: #1DB954;"></progress>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 #By Decade
 with col2:
