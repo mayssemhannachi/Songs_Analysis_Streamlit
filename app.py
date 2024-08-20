@@ -4,8 +4,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
-import time
-import requests
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -320,7 +319,6 @@ with col2:
 st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
 # Display the user's taste in music
-st.header("Taste in Music 🎶")
 
 #Extract user's last listened songs
 recently_played = sp.current_user_recently_played(limit=50)
@@ -393,169 +391,177 @@ percentages_df.columns = [f"{col}" for col in percentages_df.columns]
 # Debugging: Print the DataFrame to check the data
 print(percentages_df)
 
-# Display the user's music taste statistics
-st.header("Taste")
 
-# Custom HTML and CSS for the grid layout and sliders
-st.markdown(
-    """
+# Ensure all criteria are present in the DataFrame
+criteria_opposites = {
+    'mood': ('Sad', 'Happy'),
+    'rhythm': ('Unrhythmic', 'Danceable'),
+    'tempo': ('Slow', 'Fast'),
+    'acoustic': ('Acoustic', 'Electric'),
+    'energy': ('Relaxing', 'Energetic'),
+    'loudness': ('Soft', 'Loud'),
+    'instrumental': ('Instrumental', 'With Vocals'),
+    'live': ('Live', 'Studio'),
+    'spoken': ('Spoken', 'Musical')
+}
+
+# Add missing criteria with 0% values for all categories
+for criterion in criteria_opposites.keys():
+    if criterion not in percentages_df.columns:
+        percentages_df[criterion] = pd.Series([0] * len(percentages_df.index), index=percentages_df.index)
+
+# Adjust the column names for display purposes
+percentages_df.columns = [f"{col}" for col in percentages_df.columns]
+
+# Debugging: Print the DataFrame to check the data
+print(percentages_df)
+
+# Display the user's music taste statistics
+st.header("Taste 🎧ྀི")
+
+
+
+# CSS content for the grid display
+css_content = """
     <style>
     .outer-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr); /* 3 columns with equal width */
-        gap: 20px; /* Space between outer grid items */
-        padding: 20px;
+        gap: 10px; /* Space between outer grid items */
+        padding: 50px;
         border-radius: 10px;
-    }
-    .grid-item {
         background-color: #14171d;
-        border-radius: 5px;
-        padding: 10px;
+        width: fit-content;
+    }
+
+    .grid-item {
+        border-radius: 10px;
+        padding: 30px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center; /* Center the content */
         color: white;
         font-weight: 800;
-        font-size: 15px;
+        font-size: 14px;
+        height: 40px; /* Set a fixed height for uniform grid items */
+        width: 385px;
+        background-color: #14171d; /* Add background color */
     }
+
+    span {
+        margin: 10px;
+    }
+
     .slider-container {
-        display: flex;
-        align-items: center;
-        width: 150px;
-        margin: 0 10px;
+        width: fit-content;
     }
+
     .slider {
         -webkit-appearance: none;
-        width: 100%;
-        height: 6px;
+        width: 100px;
+        height: 10px;
         background: #6e6e6e;
-        border-radius: 5px;
+        border-radius: 20px;
         outline: none;
-        opacity: 0.7;
+        opacity: 0.8;
         transition: opacity .15s ease-in-out;
     }
+
     .slider::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 20px;
-        height: 20px;
+        width: 8px;
+        height: 15px;
         background: #1DB954;
-        border-radius: 50%;
-        cursor: pointer;
+        border-radius: 22px;
+        box-shadow: 0px 10px 10px rgba(0,0,0,0.25);
+        border: 0px solid #ffffff;
     }
+
     .slider::-moz-range-thumb {
-        width: 20px;
-        height: 20px;
+        width: 8px;
+        height: 15px;
         background: #1DB954;
-        border-radius: 50%;
+        border-radius: 22px;
         cursor: pointer;
-    }
-    .container {
-        margin: 50px; /* Add more space between container and text */
+        border: 0px solid #ffffff;
     }
     </style>
-    """, 
-    unsafe_allow_html=True
-)
+    """
 
-# Start the outer grid container
-st.markdown('<div class="outer-grid">', unsafe_allow_html=True)
+# Inject the CSS into the Streamlit app
+st.markdown(css_content, unsafe_allow_html=True)
+
+
+
+# Create a grid layout using Streamlit's columns
+columns = st.columns(3)
 
 # Loop through the criteria and add items to the grid
-for i in range(0, len(all_criteria)):
-    criterion = all_criteria[i]
+for i, (criterion, (left_value, right_value)) in enumerate(criteria_opposites.items()):
     if criterion in percentages_df.index:
         values = percentages_df.loc[criterion].dropna().sort_values(ascending=False)
 
-        if len(values) == 0:
-            value_1, percentage_1 = "N/A", 0
-            value_2, percentage_2 = "N/A", 0
-        elif len(values) == 1:
-            value_1, percentage_1 = values.index[0], values.iloc[0]
-            if value_1 == 'Musical' and percentage_1 == 100:
-                value_2, percentage_2 = 'Spoken', 0
-            else:
-                value_2, percentage_2 = "N/A", 0
-        else:
-            if 'Spoken' in values.index and values.loc['Spoken'] == 100:
-                value_1, percentage_1 = 'Spoken', 100
-                value_2, percentage_2 = 'Musical', 0
-            else:
-                top_values = values.head(2)
-                value_1, percentage_1 = top_values.index[0], top_values.iloc[0]
-                value_2, percentage_2 = top_values.index[1], top_values.iloc[1]
-                
-            # Determine slider value based on the top criteria
-            if percentage_1 > percentage_2:
-                slider_value = 100 - percentage_1
-            else:
-                slider_value = percentage_2
+        left_percentage = values.get(left_value, 0)
+        right_percentage = values.get(right_value, 0)
+
+        # Determine slider value based on the right criteria
+        slider_value = right_percentage
 
     else:
-        value_1, percentage_1 = "N/A", 0
-        value_2, percentage_2 = "N/A", 0
+        left_percentage = 0
+        right_percentage = 0
         slider_value = 0
 
     # Add each item as a grid item inside the outer grid
-    st.markdown(
-        f"""
-        <div class="grid-item">
-            <p>{value_1}</p>
-            <div class="slider-container">
-                <input type="range" min="0" max="100" value="{slider_value}" class="slider" disabled>
-            </div>
-            <p>{value_2}</p>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
-
-# Close the outer grid container
-st.markdown('</div>', unsafe_allow_html=True)
+    col = columns[i % 3]
+    with col:
+        st.markdown(f"<div class='grid-item'><span>{left_value}</span><div class='slider-container'><input type='range' min='0' max='100' value='{slider_value}' class='slider' disabled></div><span>{right_value}</span></div>", unsafe_allow_html=True)
 
 
-# Display user's statistics by popularity, Decade, and Length of the songs
+# Add space between Row B and Row C
+st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+
+# Display the user's statistics by popularity, decade, and length of the songs
 col1, col2, col3 = st.columns([5, 5, 5])
 
 # By popularity
-# Display user's statistics by popularity, decade, and length of the songs
-col1, col2, col3 = st.columns([5, 5, 5])
 
-# By popularity
 with col1:
-    st.header("Popularity Analysis 📊")
+    st.markdown(
+            f"""
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
+                <h5 style="color: white;  margin-right: 20px; font-size:20px; margin: 0;font-weight:800;">By Popularity 🤩</h5>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    # Fetch the most popular songs on Spotify
-    top_spotify_tracks = sp.playlist_tracks('37i9dQZEVXbMDoHDwVN2tF', limit=50)  # Spotify Global Top 50 playlist
-    top_spotify_track_ids = [track['track']['id'] for track in top_spotify_tracks['items']]
+#By Decade
+with col2:
+    st.markdown(
+            f"""
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
+                <h5 style="color: white;  margin-right: 20px; font-size:20px; margin: 0;font-weight:800;">By Decade ⏳</h5>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    # Extract user's most listened songs and store in a DataFrame
-    data = []
+#By Length
+with col3:
+    st.markdown(
+            f"""
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
+                <h5 style="color: white;  margin-right: 20px; font-size:20px; margin: 0;font-weight:800;">By Length 🎀</h5>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    for track in top_tracks['items']:
-        track_id = track['id']
-        track_name = track['name']
-        popularity = track['popularity']
-        is_popular = track_id in top_spotify_track_ids
 
-        data.append({
-            'track_id': track_id,
-            'track_name': track_name,
-            'popularity': popularity,
-            'is_popular': is_popular
-        })
 
-    df = pd.DataFrame(data)
 
-    # Categorize the tracks based on popularity
-    df['popularity_category'] = df['popularity'].apply(
-        lambda x: 'Popular' if x >= 70 else 'Average' if x >= 40 else 'Obscure'
-    )
 
-    # Display the popularity distribution
-    popularity_counts = df['popularity_category'].value_counts()
-    st.bar_chart(popularity_counts)
 
-    # Show detailed data if needed
-    st.write("Detailed Popularity Analysis:")
-    st.dataframe(df[['track_name', 'popularity', 'popularity_category']])
+
