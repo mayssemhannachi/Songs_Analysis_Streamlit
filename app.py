@@ -561,22 +561,50 @@ with col1:
     # Display the popularity statistics
     st.markdown(
     f"""
-    <div style="background-color: #14171d; padding: 15px; border-radius: 5px; gap:20px; height: auto;"> 
-        <h5 style="color: white; margin-right: 20px; font-size:20px; margin: 0; font-weight:800;">By Popularity 🤩</h5>
-        
-        <h6 style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px; margin: 0;">Popular</h6>
-        <div style="background-color: #333; border-radius: 5px; overflow: hidden;">
-            <progress value="{popularity_percentages['Popular']}" max="100" style="width: 100%; height: 20px; background-color: #444; color: #1DB954;"></progress>
+    <style>
+    .label {{
+        color: white;
+        font-weight: 600;
+        margin-right: 50px;
+        font-size: 15px;
+        font-weight: 800;
+        width:100%;
+        padding-right:50px;
+    }}
+    progress[value] {{
+        /* Reset the default appearance */
+        -webkit-appearance: none;
+        appearance: none;
+        height: 10px;
+        width: 100%;
+    }}
+    progress[value]::-webkit-progress-bar {{
+        background-color: #14171d;
+        border-radius: 10px;
+        overflow: hidden;
+    }}
+    progress[value]::-webkit-progress-value {{
+        background-color: #1DB954;
+        border-radius: 10px;
+    }}
+    progress[value]::-moz-progress-bar {{
+        background-color: #1DB954;
+        border-radius: 10px;
+    }}
+    </style> <!-- Add closing style tag here -->
+    <div style="background-color: #14171d; padding: 15px; border-radius: 10px;  height: auto; "> 
+        <h5 style="color: white; margin-right: 20px; font-size:20px; margin: 5px; font-weight:800;">By Popularity 🤩</h5>
+         <div style="background-color: #14171d; display:flex; align-items: center; ">
+            <p class="label">Obscure</p>
+            <progress value="{popularity_percentages['Obscure']}" max="100" ></progress>
         </div>
-        
-        <h6 style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px; margin: 0;">Average</h6>
-        <div style="background-color: #333; border-radius: 5px; overflow: hidden;">
-            <progress value="{popularity_percentages['Average']}" max="100" style="width: 100%; height: 20px; background-color: #444; color: #1DB954;"></progress>
+        <div style="background-color: #14171d; display:flex; align-items: center;">
+            <p class="label">Average</p>
+            <progress value="{popularity_percentages['Average']}" max="100" ></progress>
         </div>
-        
-        <h6 style="color: white; opacity: 0.5; margin-right: 20px; font-size:20px; margin: 0;">Obscure</h6>
-        <div style="background-color: #333; border-radius: 5px; overflow: hidden;">
-            <progress value="{popularity_percentages['Obscure']}" max="100" style="width: 100%; height: 20px; background-color: #444; color: #1DB954;"></progress>
+        <div style="background-color: #14171d; display:flex; align-items: center;">
+            <p class="label">Popular</p>
+            <progress value="{popularity_percentages['Popular']}" max="100" ></progress>
         </div>
     </div>
     """,
