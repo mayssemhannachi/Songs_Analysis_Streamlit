@@ -718,7 +718,7 @@ for decade, percentage in sorted_decade_percentages.items():
     st.markdown(
         f"""
         <div style="background-color: #14171d;">
-            <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;">Newest Song</h5>
+            <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;margin-top:30px">Newest Song</h5>
             <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
                 <img src="{newest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
                 <div style="flex-grow: 1;">
@@ -742,16 +742,98 @@ for decade, percentage in sorted_decade_percentages.items():
 
 #By Length
 with col3:
+    # Extract the duration of each track in minutes
+    df['minutes_listened'] = df['duration_ms'] / 60000
+
+    # Categorize the tracks based on their length
+    df['length_category'] = df['minutes_listened'].apply(
+        lambda x: '≤ 4m' if x <= 4 else '5–9m' if x <= 9 else '10–19m'
+    )
+
+    # Calculate the total minutes listened to for each length category
+    length_minutes = df.groupby('length_category')['minutes_listened'].sum()
+
+    # Calculate the percentage of minutes listened to for each category
+    total_minutes = length_minutes.sum()
+    length_percentages = (length_minutes / total_minutes) * 100
+
+    # Identify the longest and shortest songs
+    longest_song = df.loc[df['minutes_listened'].idxmax()]
+    shortest_song = df.loc[df['minutes_listened'].idxmin()]
+
+    # Display the length statistics
     st.markdown(
+        f"""
+        <style>
+        .label {{
+            color: white;
+            font-weight: 600;
+            margin-left: 10px;
+            font-size: 15px;
+            font-weight: 800;
+            width:100%;
+            margin-right:10px;
+        }}
+        progress[value] {{
+            /* Reset the default appearance */
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            width: 100%; /* Increase the width to make progress bars longer */
+        }}
+        progress[value]::-webkit-progress-bar {{
+            background-color: #14171d;
+            border-radius: 10px;
+            overflow: hidden;
+        }}
+        progress[value]::-webkit-progress-value {{
+            background-color: #1DB954;
+            border-radius: 10px;
+        }}
+        progress[value]::-moz-progress-bar {{
+            background-color: #1DB954;
+            border-radius: 10px;
+        }}
+        </style>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 10px; height: auto;"> 
+            <h5 style="color: white; margin-right: 20px; font-size:30px; margin-bottom: 10px; margin-top: 10px; font-weight:800; margin-left: 10px;">By Length 🎀</h5>
+        """,
+        unsafe_allow_html=True
+    )
+
+    for length, percentage in length_percentages.items():
+        st.markdown(
             f"""
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
-                <h5 style="color: white;  margin-right: 20px; font-size:20px; margin: 0;font-weight:800;">By Length 🎀</h5>
+            <div style="background-color: #14171d; display:flex; align-items: center;">
+                <p class="label">{length}</p>
+                <progress value="{percentage}" max="100"></progress>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-
+    st.markdown(
+        f"""
+        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Longest Song</h5>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+            <img src="{longest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+            <div style="flex-grow: 1;">
+                <p style="color: white; margin-bottom: 2px;">{longest_song['track_name']}</p>
+                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{longest_song['artist_name']}</p>
+            </div>
+        </div>
+        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Shortest Song</h5>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+            <img src="{shortest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+            <div style="flex-grow: 1;">
+                <p style="color: white; margin-bottom: 2px;">{shortest_song['track_name']}</p>
+                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{shortest_song['artist_name']}</p>
+            </div>
+        </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 
