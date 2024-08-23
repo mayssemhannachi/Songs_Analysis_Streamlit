@@ -532,31 +532,46 @@ with col1:
     top_spotify_tracks = sp.playlist_tracks('37i9dQZEVXbMDoHDwVN2tF', limit=50)  # Spotify Global Top 50 playlist
     top_spotify_track_ids = [track['track']['id'] for track in top_spotify_tracks['items']]
 
-    # Extract user's most listened songs and store in a DataFrame
+        # Extract user's most listened songs and store in a DataFrame
     data = []
-
+    
     for track in top_tracks['items']:
         track_id = track['id']
         track_name = track['name']
         popularity = track['popularity']
         is_popular = track_id in top_spotify_track_ids
-
+        artist_name = track['artists'][0]['name']
+        album_image_url = track['album']['images'][0]['url'] if track['album']['images'] else ''
+        duration_ms = track['duration_ms']
+    
         data.append({
             'track_id': track_id,
             'track_name': track_name,
             'popularity': popularity,
-            'is_popular': is_popular
+            'is_popular': is_popular,
+            'artist_name': artist_name,
+            'album_image_url': album_image_url,
+            'duration_ms': duration_ms
         })
-
+    
     df = pd.DataFrame(data)
-
+    
     # Categorize the tracks based on popularity
     df['popularity_category'] = df['popularity'].apply(
         lambda x: 'Popular' if x >= 70 else 'Average' if x >= 40 else 'Obscure'
     )
-
-    # Calculate the percentage of each category
-    popularity_percentages = df['popularity_category'].value_counts(normalize=True) * 100
+    
+    # Calculate the total minutes listened to for each category
+    df['minutes_listened'] = df['duration_ms'] / 60000
+    category_minutes = df.groupby('popularity_category')['minutes_listened'].sum()
+    
+    # Calculate the percentage of minutes listened to for each category
+    total_minutes = category_minutes.sum()
+    category_percentages = (category_minutes / total_minutes) * 100
+    
+    # Get the most popular and most obscure songs
+    most_popular_song = df[df['popularity_category'] == 'Popular'].iloc[0]
+    most_obscure_song = df[df['popularity_category'] == 'Obscure'].iloc[0]
     
     # Display the popularity statistics
     st.markdown(
@@ -565,18 +580,18 @@ with col1:
     .label {{
         color: white;
         font-weight: 600;
-        margin-right: 50px;
+        margin-left: 10px;
         font-size: 15px;
         font-weight: 800;
         width:100%;
-        padding-right:50px;
+        margin-right:10px;
     }}
     progress[value] {{
         /* Reset the default appearance */
         -webkit-appearance: none;
         appearance: none;
         height: 10px;
-        width: 100%;
+        
     }}
     progress[value]::-webkit-progress-bar {{
         background-color: #14171d;
@@ -591,36 +606,139 @@ with col1:
         background-color: #1DB954;
         border-radius: 10px;
     }}
-    </style> <!-- Add closing style tag here -->
-    <div style="background-color: #14171d; padding: 15px; border-radius: 10px;  height: auto; "> 
-        <h5 style="color: white; margin-right: 20px; font-size:20px; margin: 5px; font-weight:800;">By Popularity 🤩</h5>
-         <div style="background-color: #14171d; display:flex; align-items: center; ">
+    </style>
+    <div style="background-color: #14171d; padding: 15px; border-radius: 10px; height: auto;"> 
+        <h5 style="color: white; margin-right: 20px; font-size:30px; margin-bottom: 10px; margin-top: 10px; font-weight:800; margin-left: 10px;">By Popularity</h5>
+        <div style="background-color: #14171d; display:flex; align-items: center;">
             <p class="label">Obscure</p>
-            <progress value="{popularity_percentages['Obscure']}" max="100" ></progress>
+            <progress value="{category_percentages['Obscure']}" max="100"></progress>
         </div>
         <div style="background-color: #14171d; display:flex; align-items: center;">
             <p class="label">Average</p>
-            <progress value="{popularity_percentages['Average']}" max="100" ></progress>
+            <progress value="{category_percentages['Average']}" max="100"></progress>
         </div>
         <div style="background-color: #14171d; display:flex; align-items: center;">
             <p class="label">Popular</p>
-            <progress value="{popularity_percentages['Popular']}" max="100" ></progress>
+            <progress value="{category_percentages['Popular']}" max="100"></progress>
+        </div>
+        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Most Popular</h5>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+            <img src="{most_popular_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+            <div style="flex-grow: 1;">
+                <p style="color: white; margin-bottom: 2px;">{most_popular_song['track_name']}</p>
+                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{most_popular_song['artist_name']}</p>
+            </div>
+        </div>
+        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Most Obscure</h5>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+            <img src="{most_obscure_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+            <div style="flex-grow: 1;">
+                <p style="color: white; margin-bottom: 2px;">{most_obscure_song['track_name']}</p>
+                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{most_obscure_song['artist_name']}</p>
+            </div>
         </div>
     </div>
     """,
     unsafe_allow_html=True
-)
+    )
 
-#By Decade
+# By Decade
 with col2:
+    # Extract the release year and calculate the decade
+    df['release_year'] = df['track_id'].apply(lambda x: sp.track(x)['album']['release_date'][:4])
+    df['release_year'] = pd.to_numeric(df['release_year'], errors='coerce')
+    df['decade'] = (df['release_year'] // 10) * 10
+
+    # Calculate the total minutes listened to for each decade
+    df['minutes_listened'] = df['track_id'].apply(lambda x: sp.track(x)['duration_ms'] / 60000)
+    decade_minutes = df.groupby('decade')['minutes_listened'].sum()
+
+    # Calculate the percentage of minutes listened to for each decade
+    total_minutes = decade_minutes.sum()
+    decade_percentages = (decade_minutes / total_minutes) * 100
+
+    # Identify the newest and oldest songs
+    newest_song = df.loc[df['release_year'].idxmax()]
+    oldest_song = df.loc[df['release_year'].idxmin()]
+
+    # Display the decade statistics
     st.markdown(
-            f"""
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
-                <h5 style="color: white;  margin-right: 20px; font-size:20px; margin: 0;font-weight:800;">By Decade ⏳</h5>
+        f"""
+        <style>
+        .label {{
+            color: white;
+            font-weight: 600;
+            margin-left: 10px;
+            font-size: 15px;
+            font-weight: 800;
+            width:100%;
+            margin-right:10px;
+        }}
+        progress[value] {{
+            /* Reset the default appearance */
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            width: 400%;
+        }}
+        progress[value]::-webkit-progress-bar {{
+            background-color: #14171d;
+            border-radius: 10px;
+            overflow: hidden;
+        }}
+        progress[value]::-webkit-progress-value {{
+            background-color: #1DB954;
+            border-radius: 10px;
+        }}
+        progress[value]::-moz-progress-bar {{
+            background-color: #1DB954;
+            border-radius: 10px;
+        }}
+        </style>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 10px; height: auto;"> 
+            <h5 style="color: white; margin-right: 20px; font-size:30px; margin-bottom: 10px; margin-top: 10px; font-weight:800; margin-left: 10px;">By Decade</h5>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Sort the decades in descending order
+sorted_decade_percentages = dict(sorted(decade_percentages.items(), key=lambda item: item[0], reverse=True))
+
+for decade, percentage in sorted_decade_percentages.items():
+    st.markdown(
+        f"""
+        <div style="background-color: #14171d; display:flex; align-items: center;">
+            <p class="label">{decade}s</p>
+            <progress value="{percentage}" max="100"></progress>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"""
+        <div style="background-color: #14171d;">
+            <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;">Newest Song</h5>
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                <img src="{newest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                <div style="flex-grow: 1;">
+                    <p style="color: white; margin-bottom: 2px;">{newest_song['track_name']}</p>
+                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{newest_song['artist_name']}</p>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Oldest Song</h5>
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                <img src="{oldest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                <div style="flex-grow: 1;">
+                    <p style="color: white; margin-bottom: 2px;">{oldest_song['track_name']}</p>
+                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{oldest_song['artist_name']}</p>
+                </div>
+            </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 #By Length
 with col3:
