@@ -8,6 +8,9 @@ import os
 import time
 from streamlit_lottie import st_lottie
 import json
+import pyarrow as pa
+print(pa.__version__)
+
 
 
 # Load environment variables from .env file
@@ -89,30 +92,29 @@ lottie_json_path = "/Users/macbookair/Documents/Data Science Learning/5.ETL/2. A
 # Load Lottie animation
 lottie_animation = load_lottie_json(lottie_json_path)
 
-# Display the Lottie animation
-st_lottie(lottie_animation, height=300, width=300)
+with col3:
+    current_track = sp.current_playback()
+    if current_track:
+        background_color = "#1DB954"  # You can change this to any color you prefer
 
-    
-current_track = sp.current_playback()
-if current_track:
-    background_color = "#1DB954"  # You can change this to any color you prefer
+        # Load Lottie animation
+        lottie_animation = load_lottie_json(lottie_json_path)
 
-    # Load Lottie animation
-    lottie_animation = load_lottie_json(lottie_json_path)
-
-    # Display the song's details
-    st.markdown(f"""
-        <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; display: flex; align-items: center;">
-            <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 20px; border-radius:5px;">
-            <div style="flex-grow: 1;">
-                <div style="display: flex; align-items: center;">
-                    <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']}</p>
-                    
+        # Display the song's details
+        st.markdown(f"""
+                <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; display: flex; align-items: center;">
+                    <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 20px; border-radius:5px;">
+                    <div style="flex-grow: 1;">
+                        <div style="display: flex; align-items: center;">
+                            <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']}</p>
+                        </div>
+                        <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
+                    </div>
                 </div>
-                <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            
+
+
 
 # Add space between Row A and Row B
 st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
@@ -601,7 +603,6 @@ col1, col2, col3 = st.columns([5, 5, 5])
 
 with col1:
 
-    
     # Categorize the tracks based on popularity
     df['popularity_category'] = df['popularity'].apply(
         lambda x: 'Popular' if x >= 70 else 'Average' if x >= 40 else 'Obscure'
@@ -627,7 +628,7 @@ with col1:
             color: white;
             font-weight: 600;
             margin-left: 30px;
-            font-size: 20px;
+            font-size: 15px;
             width:100%;
         }}
         progress[value] {{
@@ -715,7 +716,7 @@ with col2:
             color: white;
             font-weight: 600;
             margin-left: 30px;
-            font-size: 20px;
+            font-size: 15px;
             width:100%;
         }}
         progress[value] {{
@@ -816,7 +817,7 @@ with col3:
             color: white;
             font-weight: 600;
             margin-left: 30px;
-            font-size: 20px;
+            font-size: 15px;
             width:100%;
         }}
         progress[value] {{
