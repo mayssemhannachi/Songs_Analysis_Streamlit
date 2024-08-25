@@ -6,10 +6,8 @@ from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
 import time
-from streamlit_lottie import st_lottie
-import json
-import pyarrow as pa
-print(pa.__version__)
+import base64
+
 
 
 
@@ -73,7 +71,7 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Three columns with different widths
-col1, col2, col3 = st.columns([5, 2, 5])
+col1, col2, col3 = st.columns([6, 5, 5])
 
 # Add the header with the app name
 with col1:
@@ -81,16 +79,6 @@ with col1:
 
 # Song playing
 
-# Function to load Lottie animation from a JSON file
-def load_lottie_json(json_path):
-    with open(json_path, "r") as f:
-        return json.load(f)
-
-# Path to the Lottie JSON file
-lottie_json_path = "/Users/macbookair/Documents/Data Science Learning/5.ETL/2. Analyse  Songs With The Spotify API/img.json"
-
-# Load Lottie animation
-lottie_animation = load_lottie_json(lottie_json_path)
 
 with col3:
     current_track = sp.current_playback()
@@ -98,21 +86,25 @@ with col3:
         background_color = "#1DB954"  # You can change this to any color you prefer
 
         # Load Lottie animation
-        lottie_animation = load_lottie_json(lottie_json_path)
+        file_ = open("/Users/macbookair/Documents/Data Science Learning/5.ETL/2. Analyse  Songs With The Spotify API/player.gif", "rb")
+        contents = file_.read()
+        data_url = base64.b64encode(contents).decode("utf-8")
+        file_.close()
 
         # Display the song's details
         st.markdown(f"""
                 <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; display: flex; align-items: center;">
-                    <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 20px; border-radius:5px;">
+                    <img src="{current_track['item']['album']['images'][0]['url']}" width="40" style="margin-right: 20px; border-radius:5px;">
                     <div style="flex-grow: 1;">
                         <div style="display: flex; align-items: center;">
-                            <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']}</p>
+                            <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']} </p>
+                            <img src="data:image/gif;base64,{data_url}" alt="player" style="width: 30px; height: 20px; margin-left: 20px;">
                         </div>
                         <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
-            
+        
 
 
 
