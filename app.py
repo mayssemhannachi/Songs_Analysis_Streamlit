@@ -86,7 +86,7 @@ with col3:
         background_color = "#1DB954"  # You can change this to any color you prefer
 
         # Load Lottie animation
-        file_ = open("/Users/macbookair/Documents/Data Science Learning/5.ETL/2. Analyse  Songs With The Spotify API/player.gif", "rb")
+        file_ = open("/Users/macbookair/Documents/Data Science Learning/5.ETL/2. Analyse  Songs With The Spotify API/player2.gif", "rb")
         contents = file_.read()
         data_url = base64.b64encode(contents).decode("utf-8")
         file_.close()
@@ -98,7 +98,7 @@ with col3:
                     <div style="flex-grow: 1;">
                         <div style="display: flex; align-items: center;">
                             <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']} </p>
-                            <img src="data:image/gif;base64,{data_url}" alt="player" style="width: 30px; height: 20px; margin-left: 20px;">
+                            <img src="data:image/gif;base64,{data_url}" alt="player" style="width: 30px; height: 25px; margin-left: 20px;">
                         </div>
                         <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
                     </div>
