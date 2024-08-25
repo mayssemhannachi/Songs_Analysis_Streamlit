@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
+from spotipy import SpotifyException
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
+import time
 
 
 # Load environment variables from .env file
@@ -212,18 +214,25 @@ col1, col2 = st.columns([5, 5])
 data = []
 
 for track in top_tracks['items']:
+    track_id = track['id']
     album = track['album']
     album_name = album['name']
     album_image_url = album['images'][0]['url'] if album['images'] else None
     artist_name = album['artists'][0]['name']
+    popularity = track['popularity']
+    duration_ms = track['duration_ms']
     genres = sp.artist(album['artists'][0]['id'])['genres']  # Get genres of the artist
+    
 
     data.append({
+        'track_id': track_id,
         'track_name': track['name'],
         'album_name': album_name,
         'album_image_url': album_image_url,
         'artist_name': artist_name,
-        'genres': genres
+        'genres': genres,
+        'popularity': popularity,
+        'duration_ms': duration_ms
     })
 
 df = pd.DataFrame(data)
@@ -320,101 +329,145 @@ st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
 # Display the user's taste in music
 
-#Extract user's last listened songs
-recently_played = sp.current_user_recently_played(limit=50)
-tracks = recently_played['items']
-
-# Extract the user's top 50 tracks
-data = []
-
-for track in top_tracks['items']:
-    track_id = track['id']
-    track_features = sp.audio_features([track_id])[0]  # Get audio features of the track
-
-    # Categorize the track based on audio features
-    mood = 'Sad' if track_features['valence'] <= 0.5 else 'Happy'
-    rhythm = 'Danceable' if track_features['danceability'] >= 0.5 else 'Unrhythmic'
-    tempo = 'Fast' if track_features['tempo'] >= 120 else 'Slow'
-    acoustic = 'Acoustic' if track_features['acousticness'] >= 0.5 else 'Electric'
-    energy = 'Energetic' if track_features['energy'] >= 0.5 else 'Relaxing'
-    loudness = 'Soft' if track_features['loudness'] >= -5 else 'Loud'
-    instrumental = 'Instrumental' if track_features['instrumentalness'] >= 0.5 else 'With Vocals'
-    live = 'Live' if track_features['liveness'] >= 0.5 else 'Studio'
-    spoken = 'Spoken' if track_features['speechiness'] >= 0.5 else 'Musical'
-
-    data.append({
-        'track_name': track['name'],
-        'mood': mood,
-        'rhythm': rhythm,
-        'tempo': tempo,
-        'acoustic': acoustic,
-        'energy': energy,
-        'loudness': loudness,
-        'instrumental': instrumental,
-        'live': live,
-        'spoken': spoken
-    })
-
-# Convert the data into a DataFrame
-df = pd.DataFrame(data)
-
-# Debugging: Print the DataFrame columns to check if all expected columns are present
-print("DataFrame columns:", df.columns)
-
-# Debugging: Print the first few rows of the DataFrame to check the data
-print(df.head(20))
-
-# Calculate the percentage of each category
-criteria = ['mood', 'rhythm', 'tempo', 'acoustic', 'energy', 'loudness', 'instrumental', 'live', 'spoken']
-
-percentages = {}
-for criterion in criteria:
-    if criterion in df.columns:
-        value_counts = df[criterion].value_counts(normalize=True) * 100
-        percentages[criterion] = value_counts
-
-# Create a DataFrame to display the percentages
-percentages_df = pd.DataFrame(percentages).T
-
-# List of all criteria
-all_criteria = ['mood', 'rhythm', 'tempo', 'acoustic', 'energy', 'loudness', 'instrumental', 'live', 'spoken']
-
-# Ensure all criteria are included in percentages_df with 0% if they are not present
-for criterion in all_criteria:
-    if criterion not in percentages_df.index:
-        # Add criterion with 0% values for all categories
-        percentages_df.loc[criterion] = pd.Series([0] * len(percentages_df.columns), index=percentages_df.columns)
-
-# Adjust the column names for display purposes
-percentages_df.columns = [f"{col}" for col in percentages_df.columns]
-
-# Debugging: Print the DataFrame to check the data
-print(percentages_df)
 
 
-# Ensure all criteria are present in the DataFrame
-criteria_opposites = {
-    'mood': ('Sad', 'Happy'),
-    'rhythm': ('Unrhythmic', 'Danceable'),
-    'tempo': ('Slow', 'Fast'),
-    'acoustic': ('Acoustic', 'Electric'),
-    'energy': ('Relaxing', 'Energetic'),
-    'loudness': ('Soft', 'Loud'),
-    'instrumental': ('Instrumental', 'With Vocals'),
-    'live': ('Live', 'Studio'),
-    'spoken': ('Spoken', 'Musical')
-}
+# Function to fetch and process track features
 
-# Add missing criteria with 0% values for all categories
-for criterion in criteria_opposites.keys():
-    if criterion not in percentages_df.columns:
-        percentages_df[criterion] = pd.Series([0] * len(percentages_df.index), index=percentages_df.index)
 
-# Adjust the column names for display purposes
-percentages_df.columns = [f"{col}" for col in percentages_df.columns]
+# Function to fetch and process track features
+def fetch_track_features(sp, track_ids):
+    batch_size = 50  # Number of tracks to process in each batch
+    max_retries = 5  # Maximum number of retries
+    
+    track_features = []
+    
+    # Loop through the track IDs in batches
+    for i in range(0, len(track_ids), batch_size):
+        batch = track_ids[i:i + batch_size]
 
-# Debugging: Print the DataFrame to check the data
-print(percentages_df)
+        print(f"Fetching batch {i // batch_size + 1}: {batch}")  # Debug statement to show current batch
+
+        retry_delay = 1  # Initial delay in seconds
+
+        for attempt in range(max_retries):
+            try:
+                audio_features = sp.audio_features(batch)
+
+                if audio_features is None:
+                    print(f"No audio features returned for batch {i // batch_size + 1}")
+                    break
+
+                for idx, features in enumerate(audio_features):
+                    if features is not None:
+                        mood = 'Sad' if features['valence'] <= 0.5 else 'Happy'
+                        rhythm = 'Danceable' if features['danceability'] >= 0.5 else 'Unrhythmic'
+                        tempo = 'Fast' if features['tempo'] >= 120 else 'Slow'
+                        acoustic = 'Acoustic' if features['acousticness'] >= 0.5 else 'Electric'
+                        energy = 'Energetic' if features['energy'] >= 0.5 else 'Relaxing'
+                        loudness = 'Soft' if features['loudness'] >= -5 else 'Loud'
+                        instrumental = 'Instrumental' if features['instrumentalness'] >= 0.5 else 'With Vocals'
+                        live = 'Live' if features['liveness'] >= 0.5 else 'Studio'
+                        spoken = 'Spoken' if features['speechiness'] >= 0.5 else 'Musical'
+
+                        track_features.append({
+                            'track_id': batch[idx],
+                            'mood': mood,
+                            'rhythm': rhythm,
+                            'tempo': tempo,
+                            'acoustic': acoustic,
+                            'energy': energy,
+                            'loudness': loudness,
+                            'instrumental': instrumental,
+                            'live': live,
+                            'spoken': spoken
+                        })
+
+                break  # Exit the retry loop on success
+
+            except SpotifyException as e:
+                if e.http_status == 429:
+                    retry_after = int(e.headers.get('Retry-After', 5))  # Retry after 'Retry-After' seconds or default to 5 seconds
+                    print(f"Rate limit exceeded, retrying after {retry_after} seconds...")
+                    time.sleep(retry_after)
+                elif e.http_status in [502, 503]:
+                    # Handle server errors with exponential backoff
+                    print(f"Server error (HTTP {e.http_status}), retrying after {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Double the delay for the next retry
+                else:
+                    print(f"Error fetching audio features: {e}")
+                    raise e  # Re-raise the exception if it's not a rate limit or server issue
+
+            if attempt == max_retries - 1:
+                print(f"Failed to fetch audio features for batch {i // batch_size + 1} after {max_retries} attempts")
+
+    return track_features
+
+# Example usage:
+# Assuming `sp` is an authenticated Spotipy client and `df` contains user's top tracks with `track_id`
+track_ids = [track['id'] for track in top_tracks['items']]  # Replace `top_tracks['items']` with your top tracks data
+
+# Print track IDs to verify they are valid
+print("Track IDs:", track_ids)
+
+# Fetch and process audio features
+track_features = fetch_track_features(sp, track_ids)
+
+# Check if track_features is empty
+if not track_features:
+    print("No track features were fetched. Check your Spotify API usage or track IDs.")
+else:
+    # Convert the list of track features to a DataFrame
+    df_features = pd.DataFrame(track_features)
+
+    # Debugging: Print the DataFrame columns to check if all expected columns are present
+    print("DataFrame columns:", df_features.columns)
+
+    # Debugging: Print the first few rows of the DataFrame to check the data
+    print(df_features.head())
+
+    # Define all possible criteria and their opposites
+    criteria_opposites = {
+        'mood': ('Sad', 'Happy'),
+        'rhythm': ('Unrhythmic', 'Danceable'),
+        'tempo': ('Slow', 'Fast'),
+        'acoustic': ('Acoustic', 'Electric'),
+        'energy': ('Relaxing', 'Energetic'),
+        'loudness': ('Soft', 'Loud'),
+        'instrumental': ('Instrumental', 'With Vocals'),
+        'live': ('Live', 'Studio'),
+        'spoken': ('Spoken', 'Musical')
+    }
+
+    # Initialize the DataFrame with all possible criteria and their opposites
+    columns = [opposite for pairs in criteria_opposites.values() for opposite in pairs]
+    percentages_df = pd.DataFrame(0, index=criteria_opposites.keys(), columns=columns)
+
+    # Calculate the percentage of each category
+    for criterion in criteria_opposites.keys():
+        if criterion in df_features.columns:
+            value_counts = df_features[criterion].value_counts(normalize=True) * 100
+            print(f"Value counts for '{criterion}':")
+            print(value_counts)
+            
+            # Assign these values to the correct locations in percentages_df
+            for category, percentage in value_counts.items():
+                if category in percentages_df.columns:
+                    percentages_df.at[criterion, category] = percentage
+
+    # Ensure all criteria and their opposites are included in percentages_df with default 0% if missing
+    for criterion, (negative, positive) in criteria_opposites.items():
+        if criterion not in percentages_df.index:
+            percentages_df.loc[criterion] = [0] * len(percentages_df.columns)
+        if negative not in percentages_df.columns:
+            percentages_df[negative] = 0
+        if positive not in percentages_df.columns:
+            percentages_df[positive] = 0
+
+    # Debugging: Print the DataFrame to check the data
+    print("Final DataFrame with percentages:")
+    print(percentages_df)
+
 
 # Display the user's music taste statistics
 st.header("Taste 🎧ྀི")
@@ -528,33 +581,7 @@ col1, col2, col3 = st.columns([5, 5, 5])
 # By popularity
 
 with col1:
-    # Fetch the most popular songs on Spotify
-    top_spotify_tracks = sp.playlist_tracks('37i9dQZEVXbMDoHDwVN2tF', limit=50)  # Spotify Global Top 50 playlist
-    top_spotify_track_ids = [track['track']['id'] for track in top_spotify_tracks['items']]
 
-        # Extract user's most listened songs and store in a DataFrame
-    data = []
-    
-    for track in top_tracks['items']:
-        track_id = track['id']
-        track_name = track['name']
-        popularity = track['popularity']
-        is_popular = track_id in top_spotify_track_ids
-        artist_name = track['artists'][0]['name']
-        album_image_url = track['album']['images'][0]['url'] if track['album']['images'] else ''
-        duration_ms = track['duration_ms']
-    
-        data.append({
-            'track_id': track_id,
-            'track_name': track_name,
-            'popularity': popularity,
-            'is_popular': is_popular,
-            'artist_name': artist_name,
-            'album_image_url': album_image_url,
-            'duration_ms': duration_ms
-        })
-    
-    df = pd.DataFrame(data)
     
     # Categorize the tracks based on popularity
     df['popularity_category'] = df['popularity'].apply(
@@ -575,71 +602,73 @@ with col1:
     
     # Display the popularity statistics
     st.markdown(
-    f"""
-    <style>
-    .label {{
-        color: white;
-        font-weight: 600;
-        margin-left: 10px;
-        font-size: 15px;
-        font-weight: 800;
-        width:100%;
-        margin-right:10px;
-    }}
-    progress[value] {{
-        /* Reset the default appearance */
-        -webkit-appearance: none;
-        appearance: none;
-        height: 10px;
-        
-    }}
-    progress[value]::-webkit-progress-bar {{
-        background-color: #14171d;
-        border-radius: 10px;
-        overflow: hidden;
-    }}
-    progress[value]::-webkit-progress-value {{
-        background-color: #1DB954;
-        border-radius: 10px;
-    }}
-    progress[value]::-moz-progress-bar {{
-        background-color: #1DB954;
-        border-radius: 10px;
-    }}
-    </style>
-    <div style="background-color: #14171d; padding: 15px; border-radius: 10px; height: auto;"> 
-        <h5 style="color: white; margin-right: 20px; font-size:30px; margin-bottom: 10px; margin-top: 10px; font-weight:800; margin-left: 10px;">By Popularity</h5>
-        <div style="background-color: #14171d; display:flex; align-items: center;">
-            <p class="label">Obscure</p>
-            <progress value="{category_percentages['Obscure']}" max="100"></progress>
-        </div>
-        <div style="background-color: #14171d; display:flex; align-items: center;">
-            <p class="label">Average</p>
-            <progress value="{category_percentages['Average']}" max="100"></progress>
-        </div>
-        <div style="background-color: #14171d; display:flex; align-items: center;">
-            <p class="label">Popular</p>
-            <progress value="{category_percentages['Popular']}" max="100"></progress>
-        </div>
-        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Most Popular</h5>
-        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-            <img src="{most_popular_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
-            <div style="flex-grow: 1;">
-                <p style="color: white; margin-bottom: 2px;">{most_popular_song['track_name']}</p>
-                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{most_popular_song['artist_name']}</p>
+        f"""
+        <style>
+        .label {{
+            color: white;
+            font-weight: 600;
+            margin-left: 30px;
+            font-size: 15px;
+            font-weight: 800;
+            width:100%;
+
+        }}
+        progress[value] {{
+            /* Reset the default appearance */
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            margin-right: 60px;
+            width: 200%;
+        }}
+        progress[value]::-webkit-progress-bar {{
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            
+        }}
+        progress[value]::-webkit-progress-value {{
+            background-color: #1DB954;
+            border-radius: 10px;
+        }}
+        progress[value]::-moz-progress-bar {{
+            background-color: #1DB954;
+            border-radius: 10px;
+        }}
+        </style>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 10px; height: auto;"> 
+            <h5 style="color: white; margin-right: 20px; font-size:30px; margin-bottom: 10px; margin-top: 10px; font-weight:800; margin-left: 10px;">By Popularity</h5>
+            <div style="background-color: #14171d; display:flex; align-items: center;">
+                <p class="label" style="margin-bottom: 0;">Obscure</p>
+                <progress value="{category_percentages['Obscure']}" max="100"></progress>
+            </div>
+            <div style="background-color: #14171d; display:flex; align-items: center;">
+                <p class="label" style="margin-bottom: 0;">Average</p>
+                <progress value="{category_percentages['Average']}" max="100"></progress>
+            </div>
+            <div style="background-color: #14171d; display:flex; align-items: center;">
+                <p class="label" style="margin-bottom: 0;">Popular</p>
+                <progress value="{category_percentages['Popular']}" max="100"></progress>
+            </div>
+            <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Most Popular</h5>
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                <img src="{most_popular_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                <div style="flex-grow: 1;">
+                    <p style="color: white; margin-bottom: 2px;">{most_popular_song['track_name']}</p>
+                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{most_popular_song['artist_name']}</p>
+                </div>
+            </div>
+            <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Most Obscure</h5>
+            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                <img src="{most_obscure_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                <div style="flex-grow: 1;">
+                    <p style="color: white; margin-bottom: 2px;">{most_obscure_song['track_name']}</p>
+                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{most_obscure_song['artist_name']}</p>
+                </div>
             </div>
         </div>
-        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Most Obscure</h5>
-        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-            <img src="{most_obscure_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
-            <div style="flex-grow: 1;">
-                <p style="color: white; margin-bottom: 2px;">{most_obscure_song['track_name']}</p>
-                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{most_obscure_song['artist_name']}</p>
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True
     )
 
 # By Decade
@@ -668,21 +697,19 @@ with col2:
         .label {{
             color: white;
             font-weight: 600;
-            margin-left: 10px;
             font-size: 15px;
             font-weight: 800;
             width:100%;
-            margin-right:10px;
+            margin-left: 40px;
         }}
         progress[value] {{
             /* Reset the default appearance */
             -webkit-appearance: none;
             appearance: none;
             height: 10px;
-            width: 400%;
         }}
         progress[value]::-webkit-progress-bar {{
-            background-color: #14171d;
+            background-color: #fffff;
             border-radius: 10px;
             overflow: hidden;
         }}
@@ -701,44 +728,44 @@ with col2:
         unsafe_allow_html=True
     )
 
-# Sort the decades in descending order
-sorted_decade_percentages = dict(sorted(decade_percentages.items(), key=lambda item: item[0], reverse=True))
+    # Sort the decades in descending order
+    sorted_decade_percentages = dict(sorted(decade_percentages.items(), key=lambda item: item[0], reverse=True))
 
-for decade, percentage in sorted_decade_percentages.items():
-    st.markdown(
-        f"""
-        <div style="background-color: #14171d; display:flex; align-items: center;">
-            <p class="label">{decade}s</p>
-            <progress value="{percentage}" max="100"></progress>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    for decade, percentage in sorted_decade_percentages.items():
+        st.markdown(
+            f"""
+            <div style="background-color: #14171d; display:flex; align-items: center;">
+                <p class="label">{decade}s</p>
+                <progress value="{percentage}" max="100"></progress>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.markdown(
-        f"""
-        <div style="background-color: #14171d;">
-            <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;margin-top:30px">Newest Song</h5>
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-                <img src="{newest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
-                <div style="flex-grow: 1;">
-                    <p style="color: white; margin-bottom: 2px;">{newest_song['track_name']}</p>
-                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{newest_song['artist_name']}</p>
+            f"""
+            <div style="background-color: #14171d;">
+                <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;margin-top:30px">Newest Song</h5>
+                <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                    <img src="{newest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                    <div style="flex-grow: 1;">
+                        <p style="color: white; margin-bottom: 2px;">{newest_song['track_name']}</p>
+                        <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{newest_song['artist_name']}</p>
+                    </div>
+                </div>
+                <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Oldest Song</h5>
+                <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                    <img src="{oldest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                    <div style="flex-grow: 1;">
+                        <p style="color: white; margin-bottom: 2px;">{oldest_song['track_name']}</p>
+                        <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{oldest_song['artist_name']}</p>
+                    </div>
+                </div>
                 </div>
             </div>
-            <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Oldest Song</h5>
-            <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-                <img src="{oldest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
-                <div style="flex-grow: 1;">
-                    <p style="color: white; margin-bottom: 2px;">{oldest_song['track_name']}</p>
-                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{oldest_song['artist_name']}</p>
-                </div>
-            </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
 
 #By Length
 with col3:
@@ -768,11 +795,10 @@ with col3:
         .label {{
             color: white;
             font-weight: 600;
-            margin-left: 10px;
             font-size: 15px;
             font-weight: 800;
             width:100%;
-            margin-right:10px;
+            margin-left: 40px;
         }}
         progress[value] {{
             /* Reset the default appearance */
@@ -782,7 +808,7 @@ with col3:
             width: 100%; /* Increase the width to make progress bars longer */
         }}
         progress[value]::-webkit-progress-bar {{
-            background-color: #14171d;
+            background-color: #fffff;
             border-radius: 10px;
             overflow: hidden;
         }}
