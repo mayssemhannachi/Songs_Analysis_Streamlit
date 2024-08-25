@@ -14,3 +14,6 @@ pandas=2.0.3
 
 #dotenv is a Python module that allows us to load variables from a .env file into the environment variables of our Python script.
 python-dotenv
+
+# PyArrow is required for custom components in Streamlit
+pyarrow

@@ -6,6 +6,8 @@ from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
 import time
+from streamlit_lottie import st_lottie
+import json
 
 
 # Load environment variables from .env file
@@ -75,25 +77,42 @@ with col1:
     st.title("HarmonyHub 🔗")
 
 # Song playing
+
+# Function to load Lottie animation from a JSON file
+def load_lottie_json(json_path):
+    with open(json_path, "r") as f:
+        return json.load(f)
+
+# Path to the Lottie JSON file
+lottie_json_path = "/Users/macbookair/Documents/Data Science Learning/5.ETL/2. Analyse  Songs With The Spotify API/img.json"
+
+# Load Lottie animation
+lottie_animation = load_lottie_json(lottie_json_path)
+
+# Display the Lottie animation
+st_lottie(lottie_animation, height=300, width=300)
+
+    
 current_track = sp.current_playback()
 if current_track:
     background_color = "#1DB954"  # You can change this to any color you prefer
 
+    # Load Lottie animation
+    lottie_animation = load_lottie_json(lottie_json_path)
+
     # Display the song's details
-    with col3:
-        st.markdown(f"""
-            <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; display: flex; align-items: center;">
-                <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 20px; border-radius:5px;">
-                <div style="flex-grow: 1;">
-                    <div style="display: flex; align-items: center;">
-                        <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']}</p>
-                        <div style="margin-right: 10px;">
-                        </div>
-                    </div>
-                    <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
+    st.markdown(f"""
+        <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; display: flex; align-items: center;">
+            <img src="{current_track['item']['album']['images'][0]['url']}" width="50" style="margin-right: 20px; border-radius:5px;">
+            <div style="flex-grow: 1;">
+                <div style="display: flex; align-items: center;">
+                    <p style="margin: 0; font: sans-serif; font-weight: 700;">{current_track['item']['name']}</p>
+                    
                 </div>
+                <p style="margin: 0; color: black; font: sans-serif; font-weight: 700;">{current_track['item']['artists'][0]['name']}</p>
             </div>
-        """, unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
 
 # Add space between Row A and Row B
 st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
@@ -608,21 +627,19 @@ with col1:
             color: white;
             font-weight: 600;
             margin-left: 30px;
-            font-size: 15px;
-            font-weight: 800;
+            font-size: 20px;
             width:100%;
-
         }}
         progress[value] {{
             /* Reset the default appearance */
             -webkit-appearance: none;
             appearance: none;
             height: 10px;
-            margin-right: 60px;
+            margin-right: 50px;
             width: 200%;
         }}
         progress[value]::-webkit-progress-bar {{
-            background-color: #ffffff;
+            background-color: #14171d;
             border-radius: 10px;
             overflow: hidden;
             
@@ -697,21 +714,23 @@ with col2:
         .label {{
             color: white;
             font-weight: 600;
-            font-size: 15px;
-            font-weight: 800;
+            margin-left: 30px;
+            font-size: 20px;
             width:100%;
-            margin-left: 40px;
         }}
         progress[value] {{
             /* Reset the default appearance */
             -webkit-appearance: none;
             appearance: none;
             height: 10px;
+            margin-right: 50px;
+            width: 200%;
         }}
         progress[value]::-webkit-progress-bar {{
-            background-color: #fffff;
+            background-color: #14171d;
             border-radius: 10px;
             overflow: hidden;
+            
         }}
         progress[value]::-webkit-progress-value {{
             background-color: #1DB954;
@@ -724,6 +743,7 @@ with col2:
         </style>
         <div style="background-color: #14171d; padding: 15px; border-radius: 10px; height: auto;"> 
             <h5 style="color: white; margin-right: 20px; font-size:30px; margin-bottom: 10px; margin-top: 10px; font-weight:800; margin-left: 10px;">By Decade</h5>
+        </div>
         """,
         unsafe_allow_html=True
     )
@@ -745,7 +765,7 @@ with col2:
     st.markdown(
             f"""
             <div style="background-color: #14171d;">
-                <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;margin-top:30px">Newest Song</h5>
+                <h5 style="color: white; margin-right: 20px; font-size:20px;  font-weight:800; margin-left: 10px;">Newest Song</h5>
                 <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
                     <img src="{newest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
                     <div style="flex-grow: 1;">
@@ -795,22 +815,23 @@ with col3:
         .label {{
             color: white;
             font-weight: 600;
-            font-size: 15px;
-            font-weight: 800;
+            margin-left: 30px;
+            font-size: 20px;
             width:100%;
-            margin-left: 40px;
         }}
         progress[value] {{
             /* Reset the default appearance */
             -webkit-appearance: none;
             appearance: none;
             height: 10px;
-            width: 100%; /* Increase the width to make progress bars longer */
+            margin-right: 50px;
+            width: 200%;
         }}
         progress[value]::-webkit-progress-bar {{
-            background-color: #fffff;
+            background-color: #14171d;
             border-radius: 10px;
             overflow: hidden;
+            
         }}
         progress[value]::-webkit-progress-value {{
             background-color: #1DB954;
@@ -840,28 +861,25 @@ with col3:
 
     st.markdown(
         f"""
-        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Longest Song</h5>
-        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-            <img src="{longest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
-            <div style="flex-grow: 1;">
-                <p style="color: white; margin-bottom: 2px;">{longest_song['track_name']}</p>
-                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{longest_song['artist_name']}</p>
+        <div style="background-color: #14171d; padding: 15px; border-radius: 5px;">
+            <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Longest Song</h5>
+            <div style="display: flex; align-items: center; height: 70px;"> 
+                <img src="{longest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                <div style="flex-grow: 1;">
+                    <p style="color: white; margin-bottom: 2px;">{longest_song['track_name']}</p>
+                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{longest_song['artist_name']}</p>
+                </div>
             </div>
-        </div>
-        <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Shortest Song</h5>
-        <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-            <img src="{shortest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
-            <div style="flex-grow: 1;">
-                <p style="color: white; margin-bottom: 2px;">{shortest_song['track_name']}</p>
-                <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{shortest_song['artist_name']}</p>
+            <h5 style="color: white; margin-right: 20px; font-size:20px; margin-top: 30px; font-weight:800; margin-left: 10px;">Shortest Song</h5>
+            <div style="display: flex; align-items: center; height: 70px;"> 
+                <img src="{shortest_song['album_image_url']}" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">
+                <div style="flex-grow: 1;">
+                    <p style="color: white; margin-bottom: 2px;">{shortest_song['track_name']}</p>
+                    <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{shortest_song['artist_name']}</p>
+                </div>
             </div>
-        </div>
         </div>
         """,
         unsafe_allow_html=True
     )
-
-
-
-
 
