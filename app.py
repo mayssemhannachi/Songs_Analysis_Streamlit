@@ -38,6 +38,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 # Page config
 st.set_page_config(page_title='HarmonyHub', page_icon='🔗', layout='wide', initial_sidebar_state='expanded')
 
+
 # Load the CSS file
 with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -69,6 +70,7 @@ st.sidebar.markdown(f"""
         <a href="{spotify_link}" target="_blank" style="color: #1DB954;">Open in Spotify</a>
     </div>
 """, unsafe_allow_html=True)
+
 
 # Three columns with different widths
 col1, col2, col3 = st.columns([6, 5, 5])
@@ -110,6 +112,38 @@ with col3:
 
 # Add space between Row A and Row B
 st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
+
+
+#data i will work on 
+top_tracks = sp.current_user_top_tracks(limit=50)
+data = []
+
+for track in top_tracks['items']:
+    track_id = track['id']
+    album = track['album']
+    album_name = album['name']
+    album_image_url = album['images'][0]['url'] if album['images'] else None
+    artist_name = album['artists'][0]['name']
+    popularity = track['popularity']
+    duration_ms = track['duration_ms']
+    genres = sp.artist(album['artists'][0]['id'])['genres']  # Get genres of the artist
+    
+
+    data.append({
+        'track_id': track_id,
+        'track_name': track['name'],
+        'album_name': album_name,
+        'album_image_url': album_image_url,
+        'artist_name': artist_name,
+        'genres': genres,
+        'popularity': popularity,
+        'duration_ms': duration_ms
+    })
+
+df = pd.DataFrame(data)
+
+col1,col2,col3,col4=st.columns([5,5,5,5])
+
 
 col1, col2 = st.columns([5, 5])
 
@@ -165,7 +199,6 @@ with col1:
 with col2:
     st.header("Top Tracks 🎵")
     # Get the user's top tracks with the picture
-    top_tracks = sp.current_user_top_tracks(limit=50)
     top_tracks_images = []
     for track in top_tracks['items']:
         track_image = track['album']['images'][0]['url'] if track['album']['images'] else None
@@ -223,32 +256,8 @@ st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
 col1, col2 = st.columns([5, 5])
 
 
-# Extract user's most listened songs and store in a DataFrame
-data = []
+# Extract user's most listened songs details
 
-for track in top_tracks['items']:
-    track_id = track['id']
-    album = track['album']
-    album_name = album['name']
-    album_image_url = album['images'][0]['url'] if album['images'] else None
-    artist_name = album['artists'][0]['name']
-    popularity = track['popularity']
-    duration_ms = track['duration_ms']
-    genres = sp.artist(album['artists'][0]['id'])['genres']  # Get genres of the artist
-    
-
-    data.append({
-        'track_id': track_id,
-        'track_name': track['name'],
-        'album_name': album_name,
-        'album_image_url': album_image_url,
-        'artist_name': artist_name,
-        'genres': genres,
-        'popularity': popularity,
-        'duration_ms': duration_ms
-    })
-
-df = pd.DataFrame(data)
 
 # Count the number of songs listened to for each album
 album_counts = df['album_name'].value_counts().reset_index()
@@ -341,11 +350,6 @@ with col2:
 st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
 # Display the user's taste in music
-
-
-
-# Function to fetch and process track features
-
 
 # Function to fetch and process track features
 def fetch_track_features(sp, track_ids):
