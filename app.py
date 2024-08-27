@@ -36,7 +36,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 
 
 # Page config
-st.set_page_config(page_title='HarmonyHub', page_icon='🔗', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='HarmonyHub', page_icon='🎧ྀི', layout='wide', initial_sidebar_state='expanded')
 
 
 # Load the CSS file
@@ -77,7 +77,7 @@ col1, col2, col3 = st.columns([6, 5, 5])
 
 # Add the header with the app name
 with col1:
-    st.title("HarmonyHub 🔗")
+    st.title("HarmonyHub 🎧ྀི")
 
 # Song playing
 
@@ -149,7 +149,7 @@ col1, col2 = st.columns([5, 5])
 
 # Display the user's top artists
 with col1:
-    st.header("Top Artists 🎤")
+    st.header("Top Artists")
     top_artists = sp.current_user_top_artists(limit=10)
 
     # Display the top 3 artists' pictures next to each other
@@ -197,7 +197,7 @@ with col1:
     )
 
 with col2:
-    st.header("Top Tracks 🎵")
+    st.header("Top Tracks")
     # Get the user's top tracks with the picture
     top_tracks_images = []
     for track in top_tracks['items']:
@@ -268,7 +268,7 @@ top_albums_df = pd.merge(album_counts, df.drop_duplicates(subset=['album_name'])
 
 with col1:
     # Display the top albums
-    st.header("Top Albums 📀")
+    st.header("Top Albums")
 
     # Display the top 3 albums' pictures next to each other
     top_3_albums = top_albums_df.head(3)
@@ -319,7 +319,7 @@ with col1:
 
 with col2:
     # Display the top genres
-    st.header("Top Genres 🎶")
+    st.header("Top Genres")
 
     # Get the top genres from the DataFrame
     genres = df.explode('genres')['genres'].value_counts().head(9)
@@ -487,7 +487,7 @@ else:
 
 
 # Display the user's music taste statistics
-st.header("Taste 🎧ྀི")
+st.header("Taste")
 
 
 
@@ -882,7 +882,7 @@ with col3:
 
 
 # Add space between Row C and Row D
-st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
 
 #show user's playlists 
  
