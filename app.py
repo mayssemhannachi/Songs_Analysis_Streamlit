@@ -10,7 +10,6 @@ import base64
 
 
 
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -70,6 +69,7 @@ st.sidebar.markdown(f"""
         <a href="{spotify_link}" target="_blank" style="color: #1DB954;">Open in Spotify</a>
     </div>
 """, unsafe_allow_html=True)
+
 
 
 # Three columns with different widths
@@ -942,11 +942,11 @@ for i, playlist in enumerate(playlists['items']):
                 <p style="color: white; font-size: 20px; margin: 5px 0;font-weight:800px;">{playlist_name}</p>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
                     <div style="background-color: #14171d; border-radius: 20px; padding:  10px; display: flex; align-items: center;">
-                        <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;">{playlist_likes}</p>
+                        <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;padding:px;">{playlist_likes}</p>
                         <i class="fa fa-heart" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
                     </div>
                     <div style="background-color: #14171d; border-radius: 20px; padding:  10px; display: flex; align-items: center;">
-                        <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;">{formatted_duration}</p>
+                        <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;padding:1px;">{formatted_duration}</p>
                         <i class="fa fa-clock" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
                     </div>
                 </div>
@@ -955,3 +955,5 @@ for i, playlist in enumerate(playlists['items']):
             """,
             unsafe_allow_html=True
         )
+
+
