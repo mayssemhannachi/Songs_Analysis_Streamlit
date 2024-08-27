@@ -880,3 +880,79 @@ with col3:
         unsafe_allow_html=True
     )
 
+
+# Add space between Row C and Row D
+st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+
+#show user's playlists 
+ 
+st.header("Playlists")
+
+# Get the user's playlists
+playlists = sp.current_user_playlists(limit=50)
+
+# Display the user's playlists
+
+# Create a grid layout using Streamlit's columns
+columns = st.columns(4)
+
+# Loop through the playlists and add items to the grid
+for i, playlist in enumerate(playlists['items']):
+    playlist_image_url = playlist['images'][0]['url'] if playlist['images'] else None
+    playlist_name = playlist['name']
+    playlist_likes = playlist['owner']['followers']['total'] if 'followers' in playlist['owner'] else 0
+    playlist_description = playlist['description'] if playlist['description'] else ''
+
+    # Fetch the tracks for the current playlist
+    playlist_tracks = sp.playlist_tracks(playlist_id=playlist['id'])
+
+    # Calculate the total duration of the playlist in milliseconds
+    playlist_duration_ms = 0
+    for track in playlist_tracks['items']:
+        if 'track' in track and track['track'] is not None:
+            track_info = track['track']
+            duration_ms = track_info.get('duration_ms', 0)
+            playlist_duration_ms += duration_ms  # Sum in milliseconds
+
+    # Convert the total duration to hours and minutes
+    playlist_duration_hours = playlist_duration_ms // (1000 * 60 * 60)  # Convert to hours
+    playlist_duration_minutes = (playlist_duration_ms // (1000 * 60)) % 60  # Get remaining minutes
+
+    # Format the duration as "Xh Ym"
+    if playlist_duration_hours > 0:
+        formatted_duration = f"{playlist_duration_hours}h {playlist_duration_minutes}min"
+    else:
+        formatted_duration = f"{playlist_duration_minutes}min"
+
+
+    # Include Font Awesome CSS
+    st.markdown(
+        """
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Add each item as a grid item inside the outer grid
+    col = columns[i % 4]
+    with col:
+        st.markdown(
+            f"""
+            <div style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:10px;">
+                {'<img src="' + playlist_image_url + '" width="200" height="200" style="border-radius: 10%; margin-bottom: 10px;">' if playlist_image_url else ''}
+                <p style="color: white; font-size: 20px; margin: 5px 0;font-weight:800px;">{playlist_name}</p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                    <div style="background-color: #14171d; border-radius: 20px; padding: 5px 10px; display: flex; align-items: center;">
+                        <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;">{playlist_likes}</p>
+                        <i class="fa-regular fa-heart" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
+                    </div>
+                    <div style="background-color: #14171d; border-radius: 20px; padding: 5px 10px; display: flex; align-items: center;">
+                        <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;">{formatted_duration}</p>
+                        <i class="fa-regular fa-clock" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
+                    </div>
+                </div>
+                <p style="color: white; opacity: 0.7; font-size: 12px; margin: 5px 0;">{playlist_description}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
