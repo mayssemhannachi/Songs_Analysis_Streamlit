@@ -932,26 +932,25 @@ for i, playlist in enumerate(playlists['items']):
         """,
         unsafe_allow_html=True
     )
-
     # Add each item as a grid item inside the outer grid
     col = columns[i % 4]
     with col:
         st.markdown(
             f"""
-            <div style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:10px;">
+            <div style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:40px;">
                 {'<img src="' + playlist_image_url + '" width="200" height="200" style="border-radius: 10%; margin-bottom: 10px;">' if playlist_image_url else ''}
                 <p style="color: white; font-size: 20px; margin: 5px 0;font-weight:800px;">{playlist_name}</p>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-                    <div style="background-color: #14171d; border-radius: 20px; padding: 5px 10px; display: flex; align-items: center;">
+                    <div style="background-color: #14171d; border-radius: 20px; padding:  10px; display: flex; align-items: center;">
                         <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;">{playlist_likes}</p>
-                        <i class="fa-regular fa-heart" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
+                        <i class="fa fa-heart" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
                     </div>
-                    <div style="background-color: #14171d; border-radius: 20px; padding: 5px 10px; display: flex; align-items: center;">
+                    <div style="background-color: #14171d; border-radius: 20px; padding:  10px; display: flex; align-items: center;">
                         <p style="color: white;font-weight:600 ; font-size: 14px; margin: 0;">{formatted_duration}</p>
-                        <i class="fa-regular fa-clock" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
+                        <i class="fa fa-clock" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
                     </div>
                 </div>
-                <p style="color: white; opacity: 0.7; font-size: 12px; margin: 5px 0;">{playlist_description}</p>
+                <p style="color: white; opacity: 0.7; font-size: 15px; height: 30px; overflow: hidden;margin-top:5px;">{playlist_description}</p>
             </div>
             """,
             unsafe_allow_html=True
