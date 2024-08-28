@@ -958,6 +958,86 @@ for i, playlist in enumerate(playlists['items']):
             unsafe_allow_html=True
         )
 
+# Add space between Row D and Row E
+st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
 
-#recommendation system
 
+def fetch_recommendations(seed_genres=None, seed_artists=None, limit=10):
+    try:
+        print("Fetching recommendations...")
+        results = sp.recommendations(seed_genres=seed_genres, seed_artists=seed_artists, limit=limit)
+        recommendations = []
+
+        for track in results['tracks']:
+            track_info = {
+                'name': track['name'],
+                'artist': track['artists'][0]['name'],
+                'album': track['album']['name'],
+                'url': track['external_urls']['spotify'],
+                'image': track['album']['images'][0]['url'] if track['album']['images'] else None
+            }
+            recommendations.append(track_info)
+
+        print("Recommendations fetched successfully.")
+        return recommendations
+    except spotipy.exceptions.SpotifyException as e:
+        st.error(f"An error occurred: {e}")
+        print(f"SpotifyException: {e}")
+        return []
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
+        print(f"Exception: {e}")
+        return []
+
+# Recommendation Section
+st.header("Personalized Recommendations")
+
+# Fetch the user's top genres and artists
+try:
+    top_artists = sp.current_user_top_artists(limit=5)
+    top_genres = set()
+    for artist in top_artists['items']:
+        genres = artist['genres']
+        top_genres.update(genres)
+except spotipy.exceptions.SpotifyException as e:
+    st.error(f"An error occurred while fetching top artists: {e}")
+    print(f"SpotifyException: {e}")
+except Exception as e:
+    st.error(f"An unexpected error occurred while fetching top artists: {e}")
+    print(f"Exception: {e}")
+
+# Let the user choose the recommendation type
+recommendation_type = st.radio("Choose recommendation type:", ("Genres", "Artists"))
+
+if recommendation_type == "Genres":
+    # Allow user to choose genres for recommendations
+    selected_genres = st.multiselect("Select Genres for Recommendations:", list(top_genres))
+    selected_artist = None
+else:
+    # Allow user to choose an artist for recommendations
+    selected_artist = st.selectbox("Select an Artist for Recommendations:", [artist['name'] for artist in top_artists['items']])
+    selected_genres = []
+
+# Get the Spotify artist ID for the selected artist
+artist_id = next((artist['id'] for artist in top_artists['items'] if artist['name'] == selected_artist), None) if selected_artist else None
+
+# Fetch recommendations when the user clicks the button
+if st.button("Get Recommendations"):
+    print("Button clicked. Fetching recommendations...")
+    recommendations = fetch_recommendations(seed_genres=selected_genres, seed_artists=[artist_id] if artist_id else None)
+
+    # Display the recommendations
+    if recommendations:
+        for rec in recommendations:
+            st.markdown(f"""
+                <div style="background-color: #1DB954; padding: 10px; border-radius: 5px; display: flex; align-items: center; margin-bottom: 10px;">
+                    {'<img src="' + rec['image'] + '" width="60" style="border-radius: 5px; margin-right: 20px;">' if rec['image'] else ''}
+                    <div>
+                        <p style="margin: 0; color: black; font-weight: 700;">{rec['name']} by {rec['artist']}</p>
+                        <a href="{rec['url']}" target="_blank" style="color: white;">Listen on Spotify</a>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.write("No recommendations found.")
+    print("Recommendations displayed.")
