@@ -1,3 +1,5 @@
+from collections import defaultdict
+import requests
 import streamlit as st
 import pandas as pd
 from spotipy import SpotifyException
@@ -20,19 +22,25 @@ client_id = os.getenv("SPOTIPY_CLIENT_ID")
 client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
 redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
 
-# Print environment variables for debugging
-print("Client ID:", client_id)
-print("Client Secret:", client_secret)
-print("Redirect URI:", redirect_uri)
+# Verify that all environment variables are loaded
+if not client_id or not client_secret or not redirect_uri:
+    raise ValueError("One or more environment variables are missing. Please check your .env file.")
+
 
 # Initialize Spotify API client with credentials from .env file
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-    client_id=client_id,
-    client_secret=client_secret,
-    redirect_uri=redirect_uri,
-    scope="user-read-recently-played user-top-read user-read-playback-state",
-    requests_timeout=30  # Increase the timeout to 30 seconds
-))
+try:
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri,
+        scope="user-read-recently-played user-top-read user-read-playback-state",
+        requests_timeout=30  # Increase the timeout to 30 seconds
+    ))
+    print('Spotify API client created successfully!')
+except Exception as e:
+    print(f"Error initializing Spotify API client: {e}")
+    st.error(f"Error initializing Spotify API client: {e}")
+
 
 print('Spotify API client created successfully!')
 
@@ -118,33 +126,99 @@ st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
 
 print("extracting data")
 #data i will work on 
-top_tracks = sp.current_user_top_tracks(limit=50)
+# Fetch top tracks
+try:
+    print("Fetching top tracks...")
+    top_tracks = sp.current_user_top_tracks(limit=50)
+    print("Top tracks fetched successfully.")
+except Exception as e:
+    print(f"Error fetching top tracks: {e}")
+    st.error(f"Error fetching top tracks: {e}")
+
+# Cache for genres
+genres_cache = defaultdict(list)
+
+# Function to fetch genres with retry logic
+def fetch_genres_with_retry(artist_id, retries=3, delay=5):
+    if artist_id in genres_cache:
+        return genres_cache[artist_id]
+    
+    for attempt in range(retries):
+        try:
+            response = requests.get(f"https://api.spotify.com/v1/artists/{artist_id}", headers={
+                "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
+            }, timeout=10)  # Set a timeout of 10 seconds
+            response.raise_for_status()
+            genres = response.json().get('genres', [])
+            genres_cache[artist_id] = genres
+            return genres
+        except requests.exceptions.RequestException as e:
+            if response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", delay))
+                print(f"Rate limit exceeded. Retrying in {retry_after} seconds...")
+                time.sleep(retry_after)
+            else:
+                print(f"Request error fetching genres for artist (ID: {artist_id}): {e}")
+                return []
+        except Exception as e:
+            print(f"Unexpected error fetching genres for artist (ID: {artist_id}): {e}")
+            return []
+    return []
+
+# Initialize data list
 data = []
 
-for track in top_tracks['items']:
-    track_id = track['id']
-    album = track['album']
-    album_name = album['name']
-    album_image_url = album['images'][0]['url'] if album['images'] else None
-    artist_name = album['artists'][0]['name']
-    popularity = track['popularity']
-    duration_ms = track['duration_ms']
-    genres = sp.artist(album['artists'][0]['id'])['genres']  # Get genres of the artist
-    
+# Process each track
+try:
+    for track in top_tracks['items']:
+        track_id = track['id']
+        album = track['album']
+        album_name = album['name']
+        album_image_url = album['images'][0]['url'] if album['images'] else None
+        artist_name = album['artists'][0]['name']
+        popularity = track['popularity']
+        duration_ms = track['duration_ms']
+        
+        # Fetch genres of the artist
+        try:
+            print(f"Fetching genres for artist: {artist_name}")
+            artist_id = album['artists'][0]['id']
+            genres = fetch_genres_with_retry(artist_id)
+            print(f"Genres for artist {artist_name}: {genres}")
+        except Exception as e:
+            print(f"Error fetching genres for artist {artist_name} (ID: {artist_id}): {e}")
+            genres = []
 
-    data.append({
-        'track_id': track_id,
-        'track_name': track['name'],
-        'album_name': album_name,
-        'album_image_url': album_image_url,
-        'artist_name': artist_name,
-        'genres': genres,
-        'popularity': popularity,
-        'duration_ms': duration_ms
-    })
+        # Append track data to the list
+        data.append({
+            'track_id': track_id,
+            'track_name': track['name'],
+            'album_name': album_name,
+            'album_image_url': album_image_url,
+            'artist_name': artist_name,
+            'genres': genres,
+            'popularity': popularity,
+            'duration_ms': duration_ms
+        })
+        print(f"Processed track: {track['name']} by {artist_name}")
 
-df = pd.DataFrame(data)
-print(df.head())
+# Create DataFrame
+    df = pd.DataFrame(data)
+    print("DataFrame created successfully.")
+    print(df.head())
+except Exception as e:
+    print(f"Error processing tracks: {e}")
+    st.error(f"Error processing tracks: {e}")
+
+# Debugging: Display the DataFrame in the Streamlit app sidebar
+st.sidebar.write("DataFrame head:", df.head())
+
+# Debugging: Print the 'genres' column to the console
+print("Genres column:")
+print(df['genres'])
+
+# Debugging: Display the 'genres' column in the Streamlit app sidebar
+st.sidebar.write("Genres column:", df['genres'])
 
 col1,col2,col3,col4=st.columns([5,5,5,5])
 
@@ -322,11 +396,7 @@ with col1:
     )
 
 with col2:
-    # Display the top genres
-    st.header("Top Genres")
-
-    # Get the top genres from the DataFrame
-    genres = df.explode('genres')['genres'].value_counts().head(9)
+    
 
     # Display the top genres
     for i, (genre, count) in enumerate(genres.items()):
