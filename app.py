@@ -34,10 +34,11 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     requests_timeout=30  # Increase the timeout to 30 seconds
 ))
 
-
+print('Spotify API client created successfully!')
 
 # Page config
 st.set_page_config(page_title='HarmonyHub', page_icon='🎧ྀི', layout='wide', initial_sidebar_state='expanded')
+
 
 
 # Load the CSS file
@@ -110,12 +111,12 @@ with col3:
             """, unsafe_allow_html=True)
         
 
-
+print('User profile details displayed successfully!')
 
 # Add space between Row A and Row B
 st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
 
-
+print("extracting data")
 #data i will work on 
 top_tracks = sp.current_user_top_tracks(limit=50)
 data = []
@@ -143,6 +144,7 @@ for track in top_tracks['items']:
     })
 
 df = pd.DataFrame(data)
+print(df.head())
 
 col1,col2,col3,col4=st.columns([5,5,5,5])
 
@@ -152,7 +154,7 @@ col1, col2 = st.columns([5, 5])
 # Display the user's top artists
 with col1:
     st.header("Top Artists")
-    top_artists = sp.current_user_top_artists(limit=10)
+    top_artists = sp.current_user_top_artists(limit=20)
 
     # Display the top 3 artists' pictures next to each other
     top_3_artists = top_artists['items'][:3]
@@ -934,12 +936,12 @@ for i, playlist in enumerate(playlists['items']):
         """,
         unsafe_allow_html=True
     )
-    # Add each item as a grid item inside the outer grid
+        # Add each item as a grid item inside the outer grid
     col = columns[i % 4]
     with col:
         st.markdown(
             f"""
-            <div style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:40px;">
+            <div style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:30px;">
                 {'<img src="' + playlist_image_url + '" width="200" height="200" style="border-radius: 10%; margin-bottom: 10px;">' if playlist_image_url else ''}
                 <p style="color: white; font-size: 20px; margin: 5px 0;font-weight:800px;">{playlist_name}</p>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
@@ -952,20 +954,22 @@ for i, playlist in enumerate(playlists['items']):
                         <i class="fa fa-clock" style="color: white; opacity: 0.7; font-size: 14px; margin-left: 5px;"></i>
                     </div>
                 </div>
-                <p style="color: white; opacity: 0.7; font-size: 15px; height: 30px; overflow: hidden;margin-top:5px;">{playlist_description}</p>
+                <p style="color: white; opacity: 0.7; font-size: 15px; height: 30px; overflow: hidden;margin-top:5px; margin-bottom: 0;">{playlist_description}</p>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-# Add space between Row D and Row E
-st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
 
 
-def fetch_recommendations(seed_genres=None, seed_artists=None, limit=10):
+
+# Using HTML to set the text color with a hex code
+st.markdown('< style="color:#0000FF;">This is a test</p>', unsafe_allow_html=True)
+
+def fetch_recommendations(seed_artists=None, limit=10):
     try:
         print("Fetching recommendations...")
-        results = sp.recommendations(seed_genres=seed_genres, seed_artists=seed_artists, limit=limit)
+        results = sp.recommendations(seed_artists=seed_artists, limit=limit)
         recommendations = []
 
         for track in results['tracks']:
@@ -989,16 +993,9 @@ def fetch_recommendations(seed_genres=None, seed_artists=None, limit=10):
         print(f"Exception: {e}")
         return []
 
-# Recommendation Section
-st.header("Personalized Recommendations")
-
-# Fetch the user's top genres and artists
+# Fetch the user's top artists
 try:
     top_artists = sp.current_user_top_artists(limit=5)
-    top_genres = set()
-    for artist in top_artists['items']:
-        genres = artist['genres']
-        top_genres.update(genres)
 except spotipy.exceptions.SpotifyException as e:
     st.error(f"An error occurred while fetching top artists: {e}")
     print(f"SpotifyException: {e}")
@@ -1006,17 +1003,60 @@ except Exception as e:
     st.error(f"An unexpected error occurred while fetching top artists: {e}")
     print(f"Exception: {e}")
 
-# Let the user choose the recommendation type
-recommendation_type = st.radio("Choose recommendation type:", ("Genres", "Artists"))
+# Add custom CSS styling
+st.markdown("""
+    <style>
+        
+        .discover-new-music {
+            color: red;
+            text-align: center;
+            padding: 20px;
+            background-color: #14171d;
+            border-radius: 5px;
+        }
+        .element-container {
+            margin-bottom: 0px; /* Adjust this value to reduce space */
+            padding-bottom: 0px; /* Adjust this value to reduce space */
+        }
+        .recommendation {
+            background-color: #1DB954;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .recommendation img {
+            border-radius: 5px;
+            margin-right: 20px;
+        }
+        .recommendation p {
+            margin: 0;
+            color: black;
+            font-weight: 700;
+        }
+        .stSelectbox div[data-baseweb="select"] > div:first-child {
+            background-color: #FFFFFF;
+            border-color: #2d408d;
+        }
+        .stSelectbox div[data-baseweb="select"] > div:first-child {
+            background-color: #FFFFFF;
+            border-color: #2d408d;
+        }
+    </style>
+""", unsafe_allow_html=True)
+st.subheader("Discover New Music")
 
-if recommendation_type == "Genres":
-    # Allow user to choose genres for recommendations
-    selected_genres = st.multiselect("Select Genres for Recommendations:", list(top_genres))
-    selected_artist = None
-else:
-    # Allow user to choose an artist for recommendations
-    selected_artist = st.selectbox("Select an Artist for Recommendations:", [artist['name'] for artist in top_artists['items']])
-    selected_genres = []
+# Add a description
+st.markdown("""
+    Welcome to the Music Discovery App! This app helps you discover new music based on your favorite artists.
+    Simply select an artist from the dropdown below and click the "Get Recommendations" button to see a list of recommended tracks.
+    Each recommendation includes the track name, artist, and album. Click on the album cover to listen to the track on Spotify.
+""")
+
+# Let the user choose an artist for recommendations
+st.header("Want to Discover new music?")
+selected_artist = st.selectbox("Select an Artist for Recommendations:", [artist['name'] for artist in top_artists['items']])
 
 # Get the Spotify artist ID for the selected artist
 artist_id = next((artist['id'] for artist in top_artists['items'] if artist['name'] == selected_artist), None) if selected_artist else None
@@ -1024,20 +1064,26 @@ artist_id = next((artist['id'] for artist in top_artists['items'] if artist['nam
 # Fetch recommendations when the user clicks the button
 if st.button("Get Recommendations"):
     print("Button clicked. Fetching recommendations...")
-    recommendations = fetch_recommendations(seed_genres=selected_genres, seed_artists=[artist_id] if artist_id else None)
+    recommendations = fetch_recommendations(seed_artists=[artist_id] if artist_id else None)
 
-    # Display the recommendations
+    # Display the recommendations in two columns
     if recommendations:
-        for rec in recommendations:
-            st.markdown(f"""
-                <div style="background-color: #1DB954; padding: 10px; border-radius: 5px; display: flex; align-items: center; margin-bottom: 10px;">
-                    {'<img src="' + rec['image'] + '" width="60" style="border-radius: 5px; margin-right: 20px;">' if rec['image'] else ''}
-                    <div>
-                        <p style="margin: 0; color: black; font-weight: 700;">{rec['name']} by {rec['artist']}</p>
-                        <a href="{rec['url']}" target="_blank" style="color: white;">Listen on Spotify</a>
+        col1, col2 = st.columns(2)
+        for i, rec in enumerate(recommendations):
+            col = col1 if i % 2 == 0 else col2
+            with col:
+                st.markdown(f"""
+                    <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                        <p style="color: white; opacity: 0.5; margin-right: 20px; font-weight:200; font-size:20px;">{i+1}</p>
+                        <a href="{rec['url']}" target="_blank">
+                            {'<img src="' + rec['image'] + '" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">' if track_image_url else ''}
+                        </a>
+                        <div style="flex-grow: ;">
+                            <p style="color: white; margin-bottom: 2px;">{rec['name']} </p>
+                            <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{rec['artist']}</p>
+                        </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
     else:
         st.write("No recommendations found.")
     print("Recommendations displayed.")
