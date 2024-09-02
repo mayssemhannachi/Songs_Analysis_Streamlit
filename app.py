@@ -9,8 +9,7 @@ from dotenv import load_dotenv
 import os
 import time
 import base64
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
+import requests_cache
 
 
 
@@ -26,6 +25,8 @@ redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
 if not client_id or not client_secret or not redirect_uri:
     raise ValueError("One or more environment variables are missing. Please check your .env file.")
 
+# Initialize requests cache
+requests_cache.install_cache('spotify_cache', expire_after=3600)  # Cache expires after 1 hour
 
 # Initialize Spotify API client with credentials from .env file
 try:
@@ -45,7 +46,7 @@ except Exception as e:
 print('Spotify API client created successfully!')
 
 # Page config
-st.set_page_config(page_title='HarmonyHub', page_icon='🎧ྀི', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='HarmonyHub', page_icon='🎵', layout='wide', initial_sidebar_state='expanded')
 
 
 
@@ -54,8 +55,18 @@ with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # Display the user's profile details
+# Fetch the user's profile details with caching
+session = requests_cache.CachedSession()
+access_token = sp.auth_manager.get_cached_token()['access_token']
+response = session.get('https://api.spotify.com/v1/me', headers={"Authorization": f"Bearer {access_token}"})
+user = response.json()
+
+
+
+# Display the user's profile details
 user = sp.current_user()
-if user['images']:
+profile_image_url = None
+if 'images' in user and user['images']:
     profile_images = user['images']
     profile_images.sort(key=lambda img: img['width'] * img['height'], reverse=True)
     profile_image_url = profile_images[0]['url']
@@ -122,14 +133,19 @@ with col3:
 print('User profile details displayed successfully!')
 
 # Add space between Row A and Row B
-st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
 print("extracting data")
 #data i will work on 
-# Fetch top tracks
+# Fetch top tracks with caching
+session = requests_cache.CachedSession()
 try:
     print("Fetching top tracks...")
-    top_tracks = sp.current_user_top_tracks(limit=50)
+    response = session.get('https://api.spotify.com/v1/me/top/tracks?limit=50', headers={
+        "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
+    })
+    response.raise_for_status()
+    top_tracks = response.json()
     print("Top tracks fetched successfully.")
 except Exception as e:
     print(f"Error fetching top tracks: {e}")
@@ -145,7 +161,7 @@ def fetch_genres_with_retry(artist_id, retries=3, delay=5):
     
     for attempt in range(retries):
         try:
-            response = requests.get(f"https://api.spotify.com/v1/artists/{artist_id}", headers={
+            response = session.get(f"https://api.spotify.com/v1/artists/{artist_id}", headers={
                 "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
             }, timeout=10)  # Set a timeout of 10 seconds
             response.raise_for_status()
@@ -210,25 +226,26 @@ except Exception as e:
     print(f"Error processing tracks: {e}")
     st.error(f"Error processing tracks: {e}")
 
-# Debugging: Display the DataFrame in the Streamlit app sidebar
-st.sidebar.write("DataFrame head:", df.head())
+
 
 # Debugging: Print the 'genres' column to the console
 print("Genres column:")
 print(df['genres'])
 
-# Debugging: Display the 'genres' column in the Streamlit app sidebar
-st.sidebar.write("Genres column:", df['genres'])
-
-col1,col2,col3,col4=st.columns([5,5,5,5])
-
 
 col1, col2 = st.columns([5, 5])
+
+# Fetch top artists with caching
+session = requests_cache.CachedSession()
+response = session.get('https://api.spotify.com/v1/me/top/artists?limit=20', headers={
+    "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
+})
+top_artists = response.json()
+
 
 # Display the user's top artists
 with col1:
     st.header("Top Artists")
-    top_artists = sp.current_user_top_artists(limit=20)
 
     # Display the top 3 artists' pictures next to each other
     top_3_artists = top_artists['items'][:3]
@@ -246,7 +263,7 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-    # Display the top 5 artists' names
+    # Display the top 9 artists' names
     for i, artist in enumerate(top_artists['items'][:9]):
         # Extract the artist's name and image URL
         artist_name = artist['name']
@@ -263,6 +280,7 @@ with col1:
             """,
             unsafe_allow_html=True
         )
+
 
     # see more button
     st.markdown(
@@ -396,10 +414,15 @@ with col1:
     )
 
 with col2:
-    
+    # Display the top albums
+    st.header("Top Genres")
+
+    # Ensure genres is a Series with value counts
+    top_genres = df.explode('genres')['genres'].value_counts().head(9)
+
 
     # Display the top genres
-    for i, (genre, count) in enumerate(genres.items()):
+    for i, (genre, count) in enumerate(top_genres.items()):
         st.markdown(
             f"""
             <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap:20px;height: 70px;"> 
@@ -431,7 +454,8 @@ def fetch_track_features(sp, track_ids):
     max_retries = 5  # Maximum number of retries
     
     track_features = []
-    
+    session = requests_cache.CachedSession()  # Use cached session
+
     # Loop through the track IDs in batches
     for i in range(0, len(track_ids), batch_size):
         batch = track_ids[i:i + batch_size]
@@ -442,7 +466,12 @@ def fetch_track_features(sp, track_ids):
 
         for attempt in range(max_retries):
             try:
-                audio_features = sp.audio_features(batch)
+                response = session.get(f"https://api.spotify.com/v1/audio-features?ids={','.join(batch)}", headers={
+                    "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
+                })
+
+                response.raise_for_status()
+                audio_features = response.json()['audio_features']
 
                 if audio_features is None:
                     print(f"No audio features returned for batch {i // batch_size + 1}")
@@ -961,6 +990,15 @@ st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
 #show user's playlists 
  
 st.header("Playlists")
+# Include Font Awesome CSS
+st.markdown(
+    """
+    <style>
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # Get the user's playlists
 playlists = sp.current_user_playlists(limit=50)
@@ -999,19 +1037,15 @@ for i, playlist in enumerate(playlists['items']):
         formatted_duration = f"{playlist_duration_minutes}min"
 
 
-    # Include Font Awesome CSS
-    st.markdown(
-        """
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-        """,
-        unsafe_allow_html=True
-    )
+
+
+   
         # Add each item as a grid item inside the outer grid
     col = columns[i % 4]
     with col:
         st.markdown(
             f"""
-            <div style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:30px;">
+            <div class="playlist-container"style="padding: 15px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom:30px;">
                 {'<img src="' + playlist_image_url + '" width="200" height="200" style="border-radius: 10%; margin-bottom: 10px;">' if playlist_image_url else ''}
                 <p style="color: white; font-size: 20px; margin: 5px 0;font-weight:800px;">{playlist_name}</p>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
@@ -1033,13 +1067,15 @@ for i, playlist in enumerate(playlists['items']):
 
 
 
-# Using HTML to set the text color with a hex code
-st.markdown('< style="color:#0000FF;">This is a test</p>', unsafe_allow_html=True)
-
-def fetch_recommendations(seed_artists=None, limit=10):
+# Function to fetch recommendations with caching
+def fetch_recommendations(session, seed_artists=None, limit=10):
     try:
         print("Fetching recommendations...")
-        results = sp.recommendations(seed_artists=seed_artists, limit=limit)
+        response = session.get(f"https://api.spotify.com/v1/recommendations?seed_artists={','.join(seed_artists)}&limit={limit}", headers={
+            "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
+        })
+        response.raise_for_status()
+        results = response.json()
         recommendations = []
 
         for track in results['tracks']:
@@ -1063,9 +1099,14 @@ def fetch_recommendations(seed_artists=None, limit=10):
         print(f"Exception: {e}")
         return []
 
-# Fetch the user's top artists
+# Fetch the user's top artists with caching
+session = requests_cache.CachedSession()
 try:
-    top_artists = sp.current_user_top_artists(limit=5)
+    response = session.get('https://api.spotify.com/v1/me/top/artists?limit=10', headers={
+        "Authorization": f"Bearer {sp.auth_manager.get_access_token(as_dict=False)}"
+    })
+    response.raise_for_status()
+    top_artists = response.json()
 except spotipy.exceptions.SpotifyException as e:
     st.error(f"An error occurred while fetching top artists: {e}")
     print(f"SpotifyException: {e}")
@@ -1076,7 +1117,6 @@ except Exception as e:
 # Add custom CSS styling
 st.markdown("""
     <style>
-        
         .discover-new-music {
             color: red;
             text-align: center;
@@ -1106,27 +1146,51 @@ st.markdown("""
             font-weight: 700;
         }
         .stSelectbox div[data-baseweb="select"] > div:first-child {
-            background-color: #FFFFFF;
-            border-color: #2d408d;
+            background-color: #191414;
+            border-color: 	#1DB954;
         }
         .stSelectbox div[data-baseweb="select"] > div:first-child {
-            background-color: #FFFFFF;
-            border-color: #2d408d;
+            background-color: #191414;
+            border-color: 	#1DB954;
         }
+        div.stButton > button:first-child {
+            background-color: #14171d;
+            color:white;
+            font-size:20px;
+            height:1.5em;
+            width:15em;
+            border-radius:10px 10px 10px 10px;
+        }
+        div.stButton > button:first-child:hover,
+        div.stButton > button:first-child:active {
+            border-color: #1DB954;
+            text-decoration: underline;
+            color: #1DB954; /* Corrected from text-color to color */
+        }
+        
     </style>
 """, unsafe_allow_html=True)
-st.subheader("Discover New Music")
+st.subheader("𝄞 Discover New Music 𝄞")
+
+# Initialize session state for selected artist and recommendations
+if 'selected_artist' not in st.session_state:
+    st.session_state.selected_artist = None
+if 'recommendations' not in st.session_state:
+    st.session_state.recommendations = None
 
 # Add a description
 st.markdown("""
-    Welcome to the Music Discovery App! This app helps you discover new music based on your favorite artists.
-    Simply select an artist from the dropdown below and click the "Get Recommendations" button to see a list of recommended tracks.
-    Each recommendation includes the track name, artist, and album. Click on the album cover to listen to the track on Spotify.
+    You can discover new music by selecting an artist from your top artists list. We will recommend you some tracks based on that artist. 
+    The recommendations may not necessarily be by that artist, but instead, we will recommend songs similar to that artist's songs.
 """)
 
 # Let the user choose an artist for recommendations
-st.header("Want to Discover new music?")
 selected_artist = st.selectbox("Select an Artist for Recommendations:", [artist['name'] for artist in top_artists['items']])
+
+# Update session state when an artist is selected
+if selected_artist != st.session_state.selected_artist:
+    st.session_state.selected_artist = selected_artist
+    st.session_state.recommendations = None  # Reset recommendations when a new artist is selected
 
 # Get the Spotify artist ID for the selected artist
 artist_id = next((artist['id'] for artist in top_artists['items'] if artist['name'] == selected_artist), None) if selected_artist else None
@@ -1134,26 +1198,31 @@ artist_id = next((artist['id'] for artist in top_artists['items'] if artist['nam
 # Fetch recommendations when the user clicks the button
 if st.button("Get Recommendations"):
     print("Button clicked. Fetching recommendations...")
-    recommendations = fetch_recommendations(seed_artists=[artist_id] if artist_id else None)
+    if artist_id:
+        st.session_state.recommendations = fetch_recommendations(session, seed_artists=[artist_id])
+    else:
+        st.session_state.recommendations = []   
+        print("Recommendations fetched.")
 
     # Display the recommendations in two columns
-    if recommendations:
+    if st.session_state.recommendations:
         col1, col2 = st.columns(2)
-        for i, rec in enumerate(recommendations):
+        for i, rec in enumerate(st.session_state.recommendations):
             col = col1 if i % 2 == 0 else col2
             with col:
+                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
                 st.markdown(f"""
-                    <div style="background-color: #14171d; padding: 15px; border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
-                        <p style="color: white; opacity: 0.5; margin-right: 20px; font-weight:200; font-size:20px;">{i+1}</p>
+                    <div style="background-color: #14171d;  border-radius: 5px; display: flex; align-items: center; height: 70px;"> 
+                        <p style="color: white; opacity: 0.5; margin-left: 10px; font-weight:200; font-size:20px;">{i+1}</p>
                         <a href="{rec['url']}" target="_blank">
-                            {'<img src="' + rec['image'] + '" width="50" height="50" style="border-radius: 10%; margin-right: 10px; margin-bottom: 20px;">' if track_image_url else ''}
+                            {'<img src="' + rec['image'] + '" width="50" height="50" style="border-radius: 10%; margin-left: 20px; margin-bottom: 10px;">' if rec['image'] else ''}
                         </a>
-                        <div style="flex-grow: ;">
-                            <p style="color: white; margin-bottom: 2px;">{rec['name']} </p>
+                        <div style="flex-grow:1 ;margin-left: 20px;">
+                            <p style="color: white; margin-bottom: 2px;padding-top:10px;">{rec['name']} </p>
                             <p style="color: white; opacity: 0.5; font-weight:200; margin-top: 0;">{rec['artist']}</p>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
     else:
         st.write("No recommendations found.")
-    print("Recommendations displayed.")
+        print("Recommendations displayed.")
