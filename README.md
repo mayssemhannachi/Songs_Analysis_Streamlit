@@ -38,7 +38,7 @@ HarmonyHub is a Streamlit application that allows users to connect their Spotify
 
 4. **Set up your Spotify Developer credentials**:
     - Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/applications) and create a new application.
-    - Add the redirect URI of your deployed app (e.g., `https://your-deployed-app-url`).
+    - Add the redirect URI  (e.g., `http://localhost:8502`).
     - Copy the `Client ID` and `Client Secret`.
 
 5. **Create a `.env` file in the root directory and add your Spotify credentials**:
